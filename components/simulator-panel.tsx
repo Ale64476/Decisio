@@ -405,39 +405,6 @@ export function SimulatorPanel({ scenario, onBack, onViewResults }: SimulatorPan
                 <span className="text-lg font-bold text-[#8b5cf6]">2</span>
               </div>
 
-          {/* Educational Card */}
-          {educativeMode && (
-            <div className="relative z-10 px-8 lg:px-12 pt-6">
-              <div className="max-w-7xl mx-auto">
-                <div className="glow-blue bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/60 border border-[#3b82f6]/30 p-6 rounded-2xl shadow-lg shadow-[#3b82f6]/10">
-                  <div className="flex items-start gap-4">
-                    <div className="shrink-0 relative">
-                      <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/40 to-[#8b5cf6]/30 rounded-full blur-lg" />
-                      <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-[#1e293b] to-[#0f172a] flex items-center justify-center border border-[#3b82f6]/40 shadow-lg">
-                        <img 
-                          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ajolote%20fintech-GPEqul13Rds1oDQEOr50vslu6pr6lQ.png" 
-                          alt="Decisio Assistant" 
-                          className="w-7 h-7 object-contain"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex-1 pt-1">
-                      <p className="text-sm font-bold text-[#3b82f6] mb-2">Decisio</p>
-                      <p className="text-[#cbd5e1] text-sm leading-relaxed">
-                        {isSimulating
-                          ? getCurrentStepDescription()
-                          : simulationFinished
-                            ? "La simulación ha finalizado. Puedes revisar el recorrido completo o abrir el panel de resultados detallados."
-                            : "Los parámetros que seleccionas determinan cómo se procesará tu transacción. Bitcoin ofrece comisiones más bajas pero mayor volatilidad de precio."}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
               <div>
                 <h2 className="text-xl font-semibold text-white">Ruta de transferencia</h2>
                 <p className="text-xs text-[#64748b]">Visualiza el flujo de tu transacción</p>
@@ -504,28 +471,50 @@ export function SimulatorPanel({ scenario, onBack, onViewResults }: SimulatorPan
             </div>
 
             {/* Horizontal Process Flow */}
-            <div className="bg-gradient-to-b from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-8 rounded-xl mb-8 overflow-x-auto">
-              <div className="flex items-center gap-2 min-w-max pb-4">
+            <div className="bg-gradient-to-b from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 px-4 py-6 lg:px-5 lg:py-7 rounded-xl mb-6 overflow-hidden">
+              <div className="flex items-start justify-between gap-1 w-full">
                 {transactionSteps.map((step, index) => {
                   const state = getStepState(step.id)
                   const StepIcon = step.icon
-                  
+
                   return (
-                    <div key={step.id} className="flex items-center">
+                    <div key={step.id} className="flex items-center flex-1 min-w-0">
                       {/* Step Node */}
-                      <div className="flex flex-col items-center">
-                        <div
-                          className="w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 bg-[#0f172a]/80 border-2 border-[#334155]/40"
-                          style={getStepNodeStyle(step.color, state)}
-                        >
-                          <StepIcon
-                            className={`w-6 h-6 ${state === "pendiente" ? "text-[#64748b]" : ""}`}
-                            style={getStepIconStyle(step.color, state)}
-                          />
+                      <div className="flex flex-col items-center shrink-0">
+                        <div className="relative">
+                          {state === "activo" && (
+                            <>
+                              <div
+                                className="absolute inset-0 rounded-full animate-ping"
+                                style={{
+                                  backgroundColor: `${step.color}22`,
+                                  boxShadow: `0 0 24px ${step.color}55`,
+                                  transform: "scale(1.22)",
+                                }}
+                              />
+                              <div
+                                className="absolute inset-0 rounded-full"
+                                style={{
+                                  boxShadow: `0 0 28px ${step.color}66`,
+                                  transform: "scale(1.18)",
+                                }}
+                              />
+                            </>
+                          )}
+
+                          <div
+                            className="relative w-11 h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center transition-all duration-300 bg-[#0f172a]/80 border-2 border-[#334155]/40"
+                            style={getStepNodeStyle(step.color, state)}
+                          >
+                            <StepIcon
+                              className={`w-5 h-5 ${state === "pendiente" ? "text-[#64748b]" : ""}`}
+                              style={getStepIconStyle(step.color, state)}
+                            />
+                          </div>
                         </div>
-                        
+
                         <p
-                          className={`text-xs font-bold mt-3 text-center w-12 ${
+                          className={`text-[10px] lg:text-[11px] font-bold mt-2 text-center leading-tight min-h-[28px] w-14 lg:w-16 ${
                             state === "activo" ? "text-white" : state === "pendiente" ? "text-[#64748b]" : ""
                           }`}
                           style={getStepLabelStyle(step.color, state)}
@@ -533,13 +522,13 @@ export function SimulatorPanel({ scenario, onBack, onViewResults }: SimulatorPan
                           {step.label}
                         </p>
 
-                        <p 
-                          className={`text-xs mt-1 ${
+                        <p
+                          className={`text-[10px] mt-1 ${
                             state === "activo"
-                              ? 'text-[#3b82f6] font-semibold'
+                              ? "text-[#3b82f6] font-semibold"
                               : state === "completado"
-                                ? 'text-[#10b981]'
-                                : 'text-[#475569]'
+                                ? "text-[#10b981]"
+                                : "text-[#475569]"
                           }`}
                         >
                           {state === "activo" && "Activo"}
@@ -550,20 +539,74 @@ export function SimulatorPanel({ scenario, onBack, onViewResults }: SimulatorPan
 
                       {/* Connector Line */}
                       {index < transactionSteps.length - 1 && (
-                        <div className="flex-1 h-1 mx-2 bg-gradient-to-r from-[#334155] to-[#334155]" style={{
-                          minWidth: '32px',
-                          background: index < completedSteps.length 
-                            ? 'linear-gradient(to right, #22c55e, #22c55e)'
-                            : index === completedSteps.length && activeStep
-                            ? 'linear-gradient(to right, #22c55e, #3b82f6)'
-                            : 'linear-gradient(to right, #334155, #334155)'
-                        }} />
+                        <div className="flex-1 h-[3px] mx-1.5 lg:mx-2 rounded-full bg-[#334155] relative overflow-hidden min-w-[12px]">
+                          {completedSteps.includes(step.id) && (
+                            <div
+                              className="absolute inset-0 rounded-full"
+                              style={{
+                                background: "linear-gradient(to right, #22c55e, #16a34a)",
+                              }}
+                            />
+                          )}
+
+                          {activeStep === step.id && (
+                            <>
+                              <div
+                                className="absolute inset-0 rounded-full"
+                                style={{
+                                  background: "linear-gradient(to right, #22c55e, #3b82f6)",
+                                }}
+                              />
+                              <div
+                                className="absolute inset-y-[-3px] w-10 rounded-full animate-pulse"
+                                style={{
+                                  right: 0,
+                                  background: "linear-gradient(to right, transparent, #60a5fa, transparent)",
+                                  filter: "blur(4px)",
+                                }}
+                              />
+                            </>
+                          )}
+                        </div>
                       )}
                     </div>
                   )
                 })}
               </div>
             </div>
+            
+            {/* Educational Card */}
+            {educativeMode && (
+              <div className="relative z-10 px-8 lg:px-12 pt-6">
+                <div className="max-w-7xl mx-auto">
+                  <div className="glow-blue bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/60 border border-[#3b82f6]/30 p-6 rounded-2xl shadow-lg shadow-[#3b82f6]/10">
+                    <div className="flex items-start gap-4">
+                      <div className="shrink-0 relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/40 to-[#8b5cf6]/30 rounded-full blur-lg" />
+                        <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-[#1e293b] to-[#0f172a] flex items-center justify-center border border-[#3b82f6]/40 shadow-lg">
+                          <img 
+                            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ajolote%20fintech-GPEqul13Rds1oDQEOr50vslu6pr6lQ.png" 
+                            alt="Decisio Assistant" 
+                            className="w-7 h-7 object-contain"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex-1 pt-1">
+                        <p className="text-sm font-bold text-[#3b82f6] mb-2">Decisio</p>
+                        <p className="text-[#cbd5e1] text-sm leading-relaxed">
+                          {isSimulating
+                            ? getCurrentStepDescription()
+                            : simulationFinished
+                              ? "La simulación ha finalizado. Puedes revisar el recorrido completo o abrir el panel de resultados detallados."
+                              : "Los parámetros que seleccionas determinan cómo se procesará tu transacción. Bitcoin ofrece comisiones más bajas pero mayor volatilidad de precio."}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* KPI Cards - Simulation Outcome */}
