@@ -64,7 +64,7 @@ export function SimulatorPanelAhorro({ scenario, onBack, onViewResults }: Simula
     }
 
     const step = transactionSteps.find(s => s.id === activeStep)
-    return step ? step.description : "Haz clic en 'Ejecutar simulación' para ver el flujo de transacción."
+    return step ? step.description : "Haz clic en 'Ejecutar simulación' para ver cómo avanzaría tu plan de ahorro."
   }
 
   const handleRunSimulation = () => {
@@ -171,7 +171,7 @@ export function SimulatorPanelAhorro({ scenario, onBack, onViewResults }: Simula
             />
           </div>
           <span className="text-2xl font-bold gradient-text-animated">
-            Simulador
+            Ahorro mensual
           </span>
         </div>
         <div className="flex items-center gap-3 bg-[#1e293b]/60 border border-[#334155]/50 rounded-xl px-4 py-2.5 hover:border-[#3b82f6]/30 transition-colors">
@@ -208,7 +208,7 @@ export function SimulatorPanelAhorro({ scenario, onBack, onViewResults }: Simula
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-white">Configura tu simulación</h2>
-                <p className="text-xs text-[#64748b]">Define los parámetros de tu transacción</p>
+                <p className="text-xs text-[#64748b]">Define como quieres simular tu acumulacion </p>
               </div>
             </div>
             
@@ -219,7 +219,7 @@ export function SimulatorPanelAhorro({ scenario, onBack, onViewResults }: Simula
                   <div className="w-8 h-8 rounded-lg bg-[#3b82f6]/10 border border-[#3b82f6]/20 flex items-center justify-center">
                     <span className="text-sm font-bold text-[#3b82f6]">$</span>
                   </div>
-                  <label className="text-sm font-semibold text-[#f8fafc]">Monto a enviar</label>
+                  <label className="text-sm font-semibold text-[#f8fafc]">Monto a ahorrar</label>
                 </div>
                 <div className="flex flex-wrap gap-2.5">
                   {montoOptions.map((option) => (
@@ -297,7 +297,7 @@ export function SimulatorPanelAhorro({ scenario, onBack, onViewResults }: Simula
                   <div className="w-8 h-8 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20 flex items-center justify-center">
                     <TrendingUp className="w-4 h-4 text-[#f59e0b]" />
                   </div>
-                  <label className="text-sm font-semibold text-[#f8fafc]">Frecuencia de envío</label>
+                  <label className="text-sm font-semibold text-[#f8fafc]">Frecuencia de ahorro</label>
                 </div>
                 <div className="flex flex-wrap gap-2.5">
                   {frecuenciaOptions.map((option) => (
@@ -599,7 +599,7 @@ export function SimulatorPanelAhorro({ scenario, onBack, onViewResults }: Simula
                             ? getCurrentStepDescription()
                             : simulationFinished
                               ? "La simulación ha finalizado. Puedes revisar el recorrido completo o abrir el panel de resultados detallados."
-                              : "Los parámetros que seleccionas determinan cómo se procesará tu transacción. Bitcoin ofrece comisiones más bajas pero mayor volatilidad de precio."}
+                              : "Los parámetros que seleccionas determinan cómo crecería tu ahorro con aportaciones periódicas. Bitcoin puede ofrecer alto potencial de apreciación, aunque con variaciones de precio."}
                         </p>
                       </div>
                     </div>
