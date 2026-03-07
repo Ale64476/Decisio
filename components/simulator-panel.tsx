@@ -196,38 +196,6 @@ export function SimulatorPanel({ scenario, onBack, onViewResults }: SimulatorPan
         </div>
       </div>
 
-      {/* Educational Card */}
-      {educativeMode && (
-        <div className="relative z-10 px-8 lg:px-12 pt-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="glow-blue bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/60 border border-[#3b82f6]/30 p-6 rounded-2xl shadow-lg shadow-[#3b82f6]/10">
-              <div className="flex items-start gap-4">
-                <div className="shrink-0 relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/40 to-[#8b5cf6]/30 rounded-full blur-lg" />
-                  <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-[#1e293b] to-[#0f172a] flex items-center justify-center border border-[#3b82f6]/40 shadow-lg">
-                    <img 
-                      src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ajolote%20fintech-GPEqul13Rds1oDQEOr50vslu6pr6lQ.png" 
-                      alt="Decisio Assistant" 
-                      className="w-7 h-7 object-contain"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex-1 pt-1">
-                  <p className="text-sm font-bold text-[#3b82f6] mb-2">Decisio</p>
-                  <p className="text-[#cbd5e1] text-sm leading-relaxed">
-                    {isSimulating
-                      ? getCurrentStepDescription()
-                      : simulationFinished
-                        ? "La simulación ha finalizado. Puedes revisar el recorrido completo o abrir el panel de resultados detallados."
-                        : "Los parámetros que seleccionas determinan cómo se procesará tu transacción. Bitcoin ofrece comisiones más bajas pero mayor volatilidad de precio."}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Main Content - Split Layout */}
       <main className="relative z-10 flex-1 grid lg:grid-cols-2 gap-8 p-8 lg:p-12 overflow-y-auto">
         {/* LEFT COLUMN - Decision Tree */}
@@ -436,6 +404,40 @@ export function SimulatorPanel({ scenario, onBack, onViewResults }: SimulatorPan
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8b5cf6]/20 to-[#8b5cf6]/5 border border-[#8b5cf6]/20 flex items-center justify-center">
                 <span className="text-lg font-bold text-[#8b5cf6]">2</span>
               </div>
+
+          {/* Educational Card */}
+          {educativeMode && (
+            <div className="relative z-10 px-8 lg:px-12 pt-6">
+              <div className="max-w-7xl mx-auto">
+                <div className="glow-blue bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/60 border border-[#3b82f6]/30 p-6 rounded-2xl shadow-lg shadow-[#3b82f6]/10">
+                  <div className="flex items-start gap-4">
+                    <div className="shrink-0 relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/40 to-[#8b5cf6]/30 rounded-full blur-lg" />
+                      <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-[#1e293b] to-[#0f172a] flex items-center justify-center border border-[#3b82f6]/40 shadow-lg">
+                        <img 
+                          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ajolote%20fintech-GPEqul13Rds1oDQEOr50vslu6pr6lQ.png" 
+                          alt="Decisio Assistant" 
+                          className="w-7 h-7 object-contain"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex-1 pt-1">
+                      <p className="text-sm font-bold text-[#3b82f6] mb-2">Decisio</p>
+                      <p className="text-[#cbd5e1] text-sm leading-relaxed">
+                        {isSimulating
+                          ? getCurrentStepDescription()
+                          : simulationFinished
+                            ? "La simulación ha finalizado. Puedes revisar el recorrido completo o abrir el panel de resultados detallados."
+                            : "Los parámetros que seleccionas determinan cómo se procesará tu transacción. Bitcoin ofrece comisiones más bajas pero mayor volatilidad de precio."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
               <div>
                 <h2 className="text-xl font-semibold text-white">Ruta de transferencia</h2>
                 <p className="text-xs text-[#64748b]">Visualiza el flujo de tu transacción</p>
