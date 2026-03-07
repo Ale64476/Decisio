@@ -25,7 +25,7 @@ export default function DecisioApp() {
     setCurrentScreen("simulator")
   }
 
-  const handleRunSimulation = () => {
+  const handleViewResults = () => {
     setCurrentScreen("results")
   }
 
@@ -63,7 +63,7 @@ export default function DecisioApp() {
         <SimulatorPanel 
           scenario={selectedScenario}
           onBack={handleBackToScenarios}
-          onRunSimulation={handleRunSimulation}
+          onViewResults={handleViewResults}
         />
       )}
       {currentScreen === "results" && (

@@ -9,7 +9,7 @@ import { useState } from "react"
 interface SimulatorPanelProps {
   scenario: string
   onBack: () => void
-  onRunSimulation: () => void
+  onViewResults: () => void
 }
 
 const montoOptions = ["$100", "$500", "$1,000", "$5,000"]
@@ -28,7 +28,7 @@ const transactionSteps = [
   { id: "confirmacion", label: "Confirmación", icon: CheckCircle, description: "Cada confirmación aumenta la seguridad de la transacción.", color: "#10b981" },
 ]
 
-export function SimulatorPanel({ scenario, onBack, onRunSimulation }: SimulatorPanelProps) {
+export function SimulatorPanel({ scenario, onBack, onViewResults }: SimulatorPanelProps) {
   const [selectedMonto, setSelectedMonto] = useState("$500")
   const [selectedOrigen, setSelectedOrigen] = useState("Estados Unidos")
   const [selectedDestino, setSelectedDestino] = useState("Mexico")
@@ -37,6 +37,7 @@ export function SimulatorPanel({ scenario, onBack, onRunSimulation }: SimulatorP
   const [selectedAnos, setSelectedAnos] = useState("5 anos")
   const [educativeMode, setEducativeMode] = useState(true)
   const [isSimulating, setIsSimulating] = useState(false)
+  const [simulationFinished, setSimulationFinished] = useState(false)
   const [activeStep, setActiveStep] = useState<string | null>(null)
   const [completedSteps, setCompletedSteps] = useState<string[]>([])
 
@@ -58,36 +59,40 @@ export function SimulatorPanel({ scenario, onBack, onRunSimulation }: SimulatorP
   const estimatedTime = selectedMetodo === "Bitcoin" ? "10-30 min" : "1-2 dias"
 
   const getCurrentStepDescription = () => {
+    if (simulationFinished) {
+      return "La simulación terminó correctamente. Ya puedes revisar el flujo completo o abrir el panel de resultados."
+    }
+
     const step = transactionSteps.find(s => s.id === activeStep)
     return step ? step.description : "Haz clic en 'Ejecutar simulación' para ver el flujo de transacción."
   }
 
   const handleRunSimulation = () => {
     setIsSimulating(true)
+    setSimulationFinished(false)
     setCompletedSteps([])
     setActiveStep(null)
-    onRunSimulation()
-    
-    // Simulate step progression
+
     let stepIndex = 0
-    const stepIds = transactionSteps.map(s => s.id)
-    
+    const stepIds = transactionSteps.map((s) => s.id)
+
     const simulateNextStep = () => {
       if (stepIndex < stepIds.length) {
         const currentStep = stepIds[stepIndex]
         setActiveStep(currentStep)
-        
+
         setTimeout(() => {
-          setCompletedSteps(prev => [...prev, currentStep])
+          setCompletedSteps((prev) => [...prev, currentStep])
           stepIndex++
           simulateNextStep()
         }, 1500)
       } else {
         setIsSimulating(false)
+        setSimulationFinished(true)
         setActiveStep(null)
       }
     }
-    
+
     simulateNextStep()
   }
 
@@ -98,9 +103,47 @@ export function SimulatorPanel({ scenario, onBack, onRunSimulation }: SimulatorP
   }
 
   const currentStepIndex = transactionSteps.findIndex(s => s.id === activeStep)
-  const estimatedProgressPercent = isSimulating 
-    ? ((completedSteps.length + (activeStep ? 1 : 0)) / transactionSteps.length) * 100
-    : 0
+  const estimatedProgressPercent = simulationFinished
+    ? 100
+    : isSimulating
+      ? ((completedSteps.length + (activeStep ? 1 : 0)) / transactionSteps.length) * 100
+      : 0
+
+  const getStepNodeStyle = (color: string, state: string) => {
+    if (state === "activo") {
+      return {
+        background: `linear-gradient(135deg, ${color}33, ${color}12)`,
+        borderColor: color,
+        boxShadow: `0 0 0 1px ${color}55, 0 12px 30px ${color}33`,
+      }
+    }
+
+    if (state === "completado") {
+      return {
+        background: `linear-gradient(135deg, ${color}26, ${color}0d)`,
+        borderColor: `${color}99`,
+        boxShadow: `0 0 0 1px ${color}22`,
+      }
+    }
+
+    return {}
+  }
+
+  const getStepIconStyle = (color: string, state: string) => {
+    if (state === "activo" || state === "completado") {
+      return { color }
+    }
+
+    return {}
+  }
+
+  const getStepLabelStyle = (color: string, state: string) => {
+    if (state === "completado") {
+      return { color }
+    }
+
+    return {}
+  }
 
   return (
     <div className="min-h-screen bg-[#0f172a] flex flex-col relative overflow-hidden">
@@ -330,14 +373,26 @@ export function SimulatorPanel({ scenario, onBack, onRunSimulation }: SimulatorP
             </div>
 
             {/* Execute Button */}
-            <Button 
-              onClick={handleRunSimulation}
-              disabled={isSimulating}
-              className="btn-shine w-full mt-8 bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:opacity-90 text-white py-7 text-base font-semibold rounded-xl shadow-xl shadow-[#3b82f6]/30 transition-all hover:shadow-2xl hover:shadow-[#8b5cf6]/40 disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              <Play className="mr-2.5 w-5 h-5" />
-              {isSimulating ? "Simulando..." : "Ejecutar simulación"}
-            </Button>
+            <div className="mt-8 space-y-3">
+              <Button 
+                onClick={handleRunSimulation}
+                disabled={isSimulating}
+                className="btn-shine w-full bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:opacity-90 text-white py-7 text-base font-semibold rounded-xl shadow-xl shadow-[#3b82f6]/30 transition-all hover:shadow-2xl hover:shadow-[#8b5cf6]/40 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                <Play className="mr-2.5 w-5 h-5" />
+                {isSimulating ? "Simulando..." : simulationFinished ? "Ejecutar de nuevo" : "Ejecutar simulación"}
+              </Button>
+
+              {simulationFinished && (
+                <Button
+                  onClick={onViewResults}
+                  className="w-full bg-[#0f172a] border border-[#22c55e]/40 hover:bg-[#22c55e]/10 text-white py-7 text-base font-semibold rounded-xl transition-all"
+                >
+                  Ver resultados detallados
+                  <ArrowRight className="ml-2.5 w-5 h-5" />
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Educational Card */}
@@ -359,7 +414,9 @@ export function SimulatorPanel({ scenario, onBack, onRunSimulation }: SimulatorP
                   <p className="text-[#cbd5e1] text-sm leading-relaxed">
                     {isSimulating 
                       ? getCurrentStepDescription()
-                      : "Los parámetros que seleccionas determinan cómo se procesará tu transacción. Bitcoin ofrece comisiones más bajas pero mayor volatilidad de precio."}
+                       : simulationFinished
+                          ? "La simulación ha finalizado. Puedes revisar el recorrido completo o abrir el panel de resultados detallados."
+                          : "Los parámetros que seleccionas determinan cómo se procesará tu transacción. Bitcoin ofrece comisiones más bajas pero mayor volatilidad de precio."}
                   </p>
                 </div>
               </div>
@@ -451,37 +508,34 @@ export function SimulatorPanel({ scenario, onBack, onRunSimulation }: SimulatorP
                     <div key={step.id} className="flex items-center">
                       {/* Step Node */}
                       <div className="flex flex-col items-center">
-                        <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 ${
-                          state === "activo"
-                            ? `bg-gradient-to-br from-[${step.color}]/40 to-[${step.color}]/10 border-2 border-[${step.color}] shadow-lg shadow-[${step.color}]/40`
-                            : state === "completado"
-                            ? `bg-gradient-to-br from-[${step.color}]/30 to-[${step.color}]/5 border-2 border-[${step.color}]/60`
-                            : 'bg-[#0f172a]/80 border-2 border-[#334155]/40'
-                        }`}>
-                          <StepIcon className={`w-6 h-6 ${
-                            state === "activo"
-                              ? `text-[${step.color}]`
-                              : state === "completado"
-                              ? `text-[${step.color}]`
-                              : 'text-[#64748b]'
-                          }`} />
+                        <div
+                          className="w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 bg-[#0f172a]/80 border-2 border-[#334155]/40"
+                          style={getStepNodeStyle(step.color, state)}
+                        >
+                          <StepIcon
+                            className={`w-6 h-6 ${state === "pendiente" ? "text-[#64748b]" : ""}`}
+                            style={getStepIconStyle(step.color, state)}
+                          />
                         </div>
-                        <p className={`text-xs font-bold mt-3 text-center w-12 ${
-                          state === "activo"
-                            ? 'text-white'
-                            : state === "completado"
-                            ? `text-[${step.color}]`
-                            : 'text-[#64748b]'
-                        }`}>
+                        
+                        <p
+                          className={`text-xs font-bold mt-3 text-center w-12 ${
+                            state === "activo" ? "text-white" : state === "pendiente" ? "text-[#64748b]" : ""
+                          }`}
+                          style={getStepLabelStyle(step.color, state)}
+                        >
                           {step.label}
                         </p>
-                        <p className={`text-xs mt-1 ${
-                          state === "activo"
-                            ? 'text-[#3b82f6] font-semibold'
-                            : state === "completado"
-                            ? 'text-[#10b981]'
-                            : 'text-[#475569]'
-                        }`}>
+
+                        <p 
+                          className={`text-xs mt-1 ${
+                            state === "activo"
+                              ? 'text-[#3b82f6] font-semibold'
+                              : state === "completado"
+                                ? 'text-[#10b981]'
+                                : 'text-[#475569]'
+                          }`}
+                        >
                           {state === "activo" && "Activo"}
                           {state === "completado" && "✓"}
                           {state === "pendiente" && "—"}
@@ -514,8 +568,12 @@ export function SimulatorPanel({ scenario, onBack, onRunSimulation }: SimulatorP
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-white">Resultados simulados</h2>
-                <p className={`text-xs ${isSimulating ? 'text-[#3b82f6]' : 'text-[#64748b]'}`}>
-                  {isSimulating ? `Etapa: ${activeStep ? transactionSteps.find(s => s.id === activeStep)?.label : 'Preparando...'}` : 'Haz clic en ejecutar para ver los resultados'}
+                <p className={`text-xs ${isSimulating ? 'text-[#3b82f6]' : simulationFinished ? 'text-[#22c55e]' : 'text-[#64748b]'}`}>
+                  {isSimulating
+                    ? `Etapa: ${activeStep ? transactionSteps.find(s => s.id === activeStep)?.label : 'Preparando...'}`
+                    : simulationFinished
+                      ? 'Simulación completada'
+                      : 'Haz clic en ejecutar para ver los resultados'}
                 </p>
               </div>
             </div>
@@ -561,9 +619,12 @@ export function SimulatorPanel({ scenario, onBack, onRunSimulation }: SimulatorP
                   ? activeStep
                     ? `En progreso: ${transactionSteps.find(s => s.id === activeStep)?.label}`
                     : 'Iniciando simulación...'
-                  : 'Esperando para ejecutar simulación'}
+                  : simulationFinished
+                    ? 'Simulación finalizada. El flujo completó todas las etapas.'
+                    : 'Esperando para ejecutar simulación'}
               </p>
-              {isSimulating && (
+
+              {(isSimulating || simulationFinished) && (
                 <div className="w-full h-2 bg-[#0f172a]/60 rounded-full mt-4 overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-[#3b82f6] to-[#22c55e] rounded-full transition-all duration-300"
