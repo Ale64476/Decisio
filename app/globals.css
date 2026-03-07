@@ -3,6 +3,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Hola mundo */
 :root {
   /* Decisio Fintech Dark Theme */
   --background: #0f172a;
