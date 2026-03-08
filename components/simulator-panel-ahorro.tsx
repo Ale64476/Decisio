@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, Play, Wallet, Globe, Server, HardDrive, Cpu, CheckCircle, ArrowRight, Lightbulb, Zap, Shield, TrendingUp, Circle } from "lucide-react"
+import { ArrowLeft, Play, Wallet, Globe, Server, HardDrive, Cpu, CheckCircle, ArrowRight, Lightbulb, Zap, Shield, TrendingUp, Circle, LucideIcon, BedSingle, TrendingDown } from "lucide-react"
 import { useState } from "react"
 
 interface SimulatorPanelProps {
@@ -13,20 +13,19 @@ interface SimulatorPanelProps {
 }
 
 const montoOptions = ["$100", "$500", "$1,000", "$5,000"]
-const destinoOptions = ["Mexico", "Guatemala", "Colombia"]
 const frecuenciaOptions = ["Unica vez", "Mensual", "Semanal", "Quincenal"]
 const metodoOptions = ["En efectivo", "Cuenta de ahorro", "Bitcoin"]
 const yearsOptions = ["1 año", "3 años", "5 años", "10 años"]
 const interestOptions = ["1%","3%","5%","10%"]
+type TransactionStep = {
+  id: string
+  label: string
+  icon: LucideIcon
+  description: string
+  color: string
+}
 
-const transactionSteps = [
-  { id: "wallet", label: "Wallet", icon: Wallet, description: "Una wallet permite enviar y recibir Bitcoin.", color: "#3b82f6" },
-  { id: "red", label: "Red", icon: Globe, description: "La transacción se propaga a través de la red.", color: "#8b5cf6" },
-  { id: "mempool", label: "Mempool", icon: Server, description: "Aquí esperan las transacciones pendientes.", color: "#06b6d4" },
-  { id: "mineria", label: "Minería", icon: Cpu, description: "Los mineros agrupan transacciones en un bloque.", color: "#f59e0b" },
-  { id: "bloque", label: "Bloque", icon: HardDrive, description: "Tu transacción fue incluida en un nuevo bloque.", color: "#22c55e" },
-  { id: "confirmacion", label: "Confirmación", icon: CheckCircle, description: "Cada confirmación aumenta la seguridad de la transacción.", color: "#10b981" },
-]
+
 
 export function SimulatorPanelAhorro({ scenario, onBack, onViewResults }: SimulatorPanelProps) {
   const [selectedMonto, setSelectedMonto] = useState("$500")
@@ -40,17 +39,37 @@ export function SimulatorPanelAhorro({ scenario, onBack, onViewResults }: Simula
   const [activeStep, setActiveStep] = useState<string | null>(null)
   const [completedSteps, setCompletedSteps] = useState<string[]>([])
 
-  const getCountryFlag = (country: string) => {
-    const flags: Record<string, string> = {
-      "Estados Unidos": "🇺🇸",
-      "Canada": "🇨🇦",
-      "Espana": "🇪🇸",
-      "Mexico": "🇲🇽",
-      "Guatemala": "🇬🇹",
-      "Colombia": "🇨🇴"
-    }
-    return flags[country] || "🌐"
-  }
+let transactionSteps: TransactionStep[] = []
+switch (selectedMetodo) {
+
+  case "Bitcoin":
+    transactionSteps = [
+      { id: "wallet", label: "Wallet", icon: Wallet, description: "Una wallet permite enviar y recibir Bitcoin.", color: "#3b82f6" },
+      { id: "red", label: "Red", icon: Globe, description: "La transacción se propaga a través de la red.", color: "#8b5cf6" },
+      { id: "mempool", label: "Mempool", icon: Server, description: "Aquí esperan las transacciones pendientes.", color: "#06b6d4" },
+      { id: "mineria", label: "Minería", icon: Cpu, description: "Los mineros agrupan transacciones en un bloque.", color: "#f59e0b" },
+      { id: "bloque", label: "Bloque", icon: HardDrive, description: "Tu transacción fue incluida en un nuevo bloque.", color: "#22c55e" },
+      { id: "confirmacion", label: "Confirmación", icon: CheckCircle, description: "Cada confirmación aumenta la seguridad de la transacción.", color: "#10b981" },
+
+    ]
+    break
+  case "Cuenta de ahorro":
+    transactionSteps = [
+      { id: "colchon", label: "Colchon", icon: BedSingle, description: "Escondes tu dinero bajo el colchon.", color: "#3b82f6" },
+      { id: "confirmacion", label: "Confirmación", icon: CheckCircle, description: "Te aseguras de que nadie lo vio.", color: "#22c55e" },
+      { id: "inflacion", label: "Inflacion", icon: TrendingDown, description: "La inflacion seguira afectando el valor de tu dinero.", color: "#f59e0b" },
+      
+    ]
+    break
+    
+  case "En efectivo":
+    transactionSteps = [
+      { id: "colchon", label: "Colchon", icon: BedSingle, description: "Escondes tu dinero bajo el colchon.", color: "#3b82f6" },
+      { id: "confirmacion", label: "Confirmación", icon: CheckCircle, description: "Te aseguras de que nadie lo vio.", color: "#22c55e" },
+      { id: "inflacion", label: "Inflacion", icon: TrendingDown, description: "La inflacion seguira afectando el valor de tu dinero.", color: "#f59e0b" },
+    ]
+    break
+}
 
   const getMontoNumber = (monto: string) => parseInt(monto.replace(/[^\d]/g, ''))
   const estimatedFee = Math.max(2.5, getMontoNumber(selectedMonto) * 0.005)
@@ -293,6 +312,7 @@ export function SimulatorPanelAhorro({ scenario, onBack, onViewResults }: Simula
                   ))}
                 </div>
               </div>
+              
 
              {selectedMetodo === "Cuenta de ahorro" && (
               <div className="space-y-4 pt-2 border-t border-[#334155]/30">
