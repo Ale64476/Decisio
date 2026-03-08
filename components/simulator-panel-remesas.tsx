@@ -27,7 +27,7 @@ interface SimulatorPanelProps {
 }
 
 const montoOptions = ["$100", "$300", "$500", "$1,000"]
-const origenOptions = ["Estados Unidos", "Canada"]
+const origenOptions = ["Estados Unidos", "Canadá"]
 const frecuenciaOptions = ["Única", "Semanal", "Quincenal", "Mensual"]
 const metodoOptions = ["Bitcoin", "Remesadora", "Banco"]
 
@@ -94,13 +94,13 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
   const [activeStep, setActiveStep] = useState<string | null>(null)
   const [completedSteps, setCompletedSteps] = useState<string[]>([])
 
-  const selectedDestino = "Mexico"
+  const selectedDestino = "México"
 
   const getCountryFlag = (country: string) => {
     const flags: Record<string, string> = {
       "Estados Unidos": "🇺🇸",
-      Canada: "🇨🇦",
-      Mexico: "🇲🇽",
+      "Canadá": "🇨🇦",
+      "México": "🇲🇽",
     }
     return flags[country] || "🌐"
   }
@@ -108,13 +108,28 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
   const getCurrencyCode = (country: string) => {
     const currencies: Record<string, string> = {
       "Estados Unidos": "USD",
-      Canada: "CAD",
-      Mexico: "MXN",
+      "Canadá": "CAD",
+      "México": "MXN",
     }
     return currencies[country] || "N/A"
   }
 
   const getMontoNumber = (monto: string) => parseInt(monto.replace(/[^\d]/g, ""))
+
+  const getExchangeRateToMXN = (country: string) => {
+    const rates: Record<string, number> = {
+      "Estados Unidos": 17.0,
+      "Canadá": 12.5,
+      "México": 1,
+    }
+    return rates[country] || 1
+  }
+
+  const formatNumber = (value: number) =>
+    new Intl.NumberFormat("es-MX", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value)
 
   const estimatedFee =
     selectedMetodo === "Bitcoin"
@@ -124,6 +139,7 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
         : Math.max(8, getMontoNumber(selectedMonto) * 0.045)
 
   const estimatedReceived = getMontoNumber(selectedMonto) - estimatedFee
+  const estimatedReceivedMXN = estimatedReceived * getExchangeRateToMXN(selectedOrigen)
 
   const estimatedTime =
     selectedMetodo === "Bitcoin"
@@ -134,7 +150,7 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
 
   const methodComparisonNote =
     selectedMetodo !== "Bitcoin"
-      ? `En el MVP, esta animación mantiene el recorrido educativo de una remesa con Bitcoin. ${selectedMetodo} se usa aquí para comparar tiempos y comisiones frente a esa alternativa.`
+      ? `Esta animación mantiene el recorrido educativo de una remesa con Bitcoin. ${selectedMetodo} se usa aquí para comparar tiempos y comisiones frente a esa alternativa.`
       : "Este recorrido educativo muestra cómo una remesa puede procesarse con Bitcoin desde el origen hasta la recepción en México."
 
   const getCurrentStepDescription = () => {
@@ -289,8 +305,9 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
                   <div className="w-8 h-8 rounded-lg bg-[#3b82f6]/10 border border-[#3b82f6]/20 flex items-center justify-center">
                     <span className="text-sm font-bold text-[#3b82f6]">$</span>
                   </div>
-                  <label className="text-sm font-semibold text-[#f8fafc]">Monto a enviar</label>
+                  <label className="text-sm font-semibold text-[#f8fafc]">Monto base de la remesa</label>
                 </div>
+                <p className="text-xs text-[#64748b]">Se expresa en la moneda del país de origen: {getCurrencyCode(selectedOrigen)}</p>
                 <div className="flex flex-wrap gap-2.5">
                   {montoOptions.map((option) => (
                     <button
@@ -345,7 +362,7 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
                   <span className="text-xl">{getCountryFlag(selectedDestino)}</span>
                   <div className="text-left">
                     <p className="text-sm font-semibold">{selectedDestino}</p>
-                    <p className="text-xs text-[#cbd5e1]">Destino fijo para este MVP · {getCurrencyCode(selectedDestino)}</p>
+                    <p className="text-xs text-[#cbd5e1]">Destino fijo · {getCurrencyCode(selectedDestino)}</p>
                   </div>
                 </div>
               </div>
@@ -488,7 +505,7 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
                 <span className="text-lg font-bold text-[#22c55e]">3</span>
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-white">Recorrido educativo</h2>
+                <h2 className="text-xl font-semibold text-white">Recorrido de la remesa</h2>
                 <p className="text-xs text-[#64748b]">Así se procesa una remesa con Bitcoin, paso a paso</p>
               </div>
             </div>
@@ -644,33 +661,45 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
               <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
-                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Monto enviado</p>
+                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Monto base</p>
                 <p className="text-2xl font-bold text-white mb-1">
                   {selectedMonto} {getCurrencyCode(selectedOrigen)}
                 </p>
-                <p className="text-xs text-[#64748b]">Cantidad original desde {selectedOrigen}</p>
+                <p className="text-xs text-[#64748b]">Valor original de la remesa desde {selectedOrigen}</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
+                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Método seleccionado</p>
+                <p className="text-2xl font-bold text-[#8b5cf6] mb-1">{selectedMetodo}</p>
+                <p className="text-xs text-[#64748b]">Comparación activa de costo y tiempo</p>
               </div>
 
               <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
                 <p className="text-xs font-semibold text-[#94a3b8] mb-3">Comisión estimada</p>
-                <p className="text-2xl font-bold text-[#f59e0b]">${estimatedFee.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-[#f59e0b]">{getCurrencyCode(selectedOrigen)} {formatNumber(estimatedFee)}</p>
                 <p className="text-xs text-[#64748b]">({((estimatedFee / getMontoNumber(selectedMonto)) * 100).toFixed(2)}%)</p>
               </div>
 
               <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
                 <p className="text-xs font-semibold text-[#94a3b8] mb-3">Valor neto estimado</p>
                 <p className="text-2xl font-bold text-[#22c55e]">
-                  ${estimatedReceived.toFixed(2)} {getCurrencyCode(selectedOrigen)}
+                  {getCurrencyCode(selectedOrigen)} {formatNumber(estimatedReceived)}
                 </p>
-                <p className="text-xs text-[#64748b]">Antes de la conversión final a {getCurrencyCode(selectedDestino)}</p>
+                <p className="text-xs text-[#64748b]">Después de comisiones y antes de convertir a {getCurrencyCode(selectedDestino)}</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
+                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Equivalente estimado en MXN</p>
+                <p className="text-2xl font-bold text-[#22c55e]">MXN {formatNumber(estimatedReceivedMXN)}</p>
+                <p className="text-xs text-[#64748b]">Monto aproximado a recibir en México</p>
               </div>
 
               <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
                 <p className="text-xs font-semibold text-[#94a3b8] mb-3">Tiempo estimado</p>
                 <p className="text-2xl font-bold text-[#3b82f6]">{estimatedTime}</p>
-                <p className="text-xs text-[#64748b]">{selectedMetodo}</p>
+                <p className="text-xs text-[#64748b]">Método: {selectedMetodo}</p>
               </div>
             </div>
 
@@ -704,3 +733,4 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
     </div>
   )
 }
+
