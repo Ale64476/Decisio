@@ -18,14 +18,18 @@ import {
   BadgeDollarSign,
 } from "lucide-react"
 import {
-  LineChart,
-  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   Tooltip,
   CartesianGrid,
   ResponsiveContainer,
   Legend,
+  LineChart,
+  Line,
+  Cell,
+  LabelList,
 } from "recharts"
 
 //recibimos los parametros desde lel simulador
@@ -226,26 +230,80 @@ export function ResultsDashboardRemesas({
   const savedVsBankProjection =
     selectedProjection.totalReceivedMXN - bankProjection.totalReceivedMXN
 
-  const chartData = Array.from({ length: projectionYears }, (_, i) => {
-    const year = i + 1
+  // Datos para la gráfica de barras
 
-    const projections = comparisonRows.map((row) =>
-      buildProjectionForMethod(row, year)
-    )
+  const chartData = projectionRows.map((row) => ({
+    metodo: row.metodo,
+    valor: row.totalReceivedMXN,
+  }))
 
-    const banco = projections.find((p) => p.metodo === "Banco")
-    const remesadora = projections.find((p) => p.metodo === "Remesadora")
-    const bitcoin = projections.find((p) => p.metodo === "Bitcoin")
+  const maxProjectionRows = comparisonRows.map((row) =>
+    buildProjectionForMethod(row, 10)
+  )
 
-    return {
-      year,
-      Banco: banco?.totalReceivedMXN ?? 0,
-      Remesadora: remesadora?.totalReceivedMXN ?? 0,
-      Bitcoin: bitcoin?.totalReceivedMXN ?? 0,
+  const maxReceivedMXN = Math.max(
+    ...maxProjectionRows.map((row) => row.totalReceivedMXN)
+  )
+
+  // Para la gráfica de comisiones acumuladas
+  const feesChartData = [
+    {
+      year: 0,
+      Banco: 0,
+      Remesadora: 0,
+      Bitcoin: 0,
+    },
+    ...Array.from({ length: projectionYears }, (_, i) => {
+      const year = i + 1
+
+      const projections = comparisonRows.map((row) =>
+        buildProjectionForMethod(row, year)
+      )
+
+      const banco = projections.find((p) => p.metodo === "Banco")
+      const remesadora = projections.find((p) => p.metodo === "Remesadora")
+      const bitcoin = projections.find((p) => p.metodo === "Bitcoin")
+
+      return {
+        year,
+        Banco: (banco?.totalFees ?? 0) * referenceScenario.tipoCambioReferencia,
+        Remesadora: (remesadora?.totalFees ?? 0) * referenceScenario.tipoCambioReferencia,
+        Bitcoin: (bitcoin?.totalFees ?? 0) * referenceScenario.tipoCambioReferencia,
+      }
+    }),
+  ]
+
+  const renderEndDot =
+    (color: string) =>
+    (props: any) => {
+      const { cx, cy, index, value } = props
+      if (cx == null || cy == null || index == null || value == null) return null
+
+      const isLastPoint = index === feesChartData.length - 1
+
+      if (!isLastPoint) {
+        return <circle key={`dot-${color}-${index}`} cx={cx} cy={cy} r={3} fill={color} />
+      }
+
+      return (
+        <g key={`dot-label-${color}-${index}`}>
+          <circle cx={cx} cy={cy} r={5} fill={color} />
+          <text
+            x={cx + 10}
+            y={cy}
+            fill={color}
+            fontSize={12}
+            fontWeight={700}
+            textAnchor="start"
+            dominantBaseline="middle"
+          >
+            {formatMoney(value, "MXN")}
+          </text>
+        </g>
+      )
     }
-  })
 
-    return (
+  return (
     <div className="min-h-screen bg-[#0f172a] relative overflow-hidden">
       <div className="fixed inset-0 grid-pattern pointer-events-none" />
       <div className="fixed top-0 right-0 w-[800px] h-[800px] bg-gradient-to-bl from-[#22c55e]/5 via-transparent to-transparent rounded-full blur-3xl pointer-events-none" />
@@ -481,22 +539,124 @@ export function ResultsDashboardRemesas({
                 </div>
             </div>
 
+            {/* Gráfica de barras para comparación acumulada */}
             <div className="mt-8 bg-[#0f172a]/40 border border-[#334155]/30 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-white mb-4">
-                Crecimiento acumulado de remesas
+               Total recibido acumulado
               </h3>
+              <p className="text-sm text-[#94a3b8] mb-4">
+                Comparación del total estimado que llegaría a México al cierre del horizonte seleccionado.
+              </p>
+              <div className="h-[260px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={chartData}
+                      margin={{ top: 20, right: 20, left: 10, bottom: 10 }}
+                      barCategoryGap="35%"
+                    >
+                      <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
+
+                      <XAxis
+                        dataKey="metodo"
+                        stroke="#94a3b8"
+                      />
+
+                      <YAxis
+                        stroke="#94a3b8"
+                        domain={[0, maxReceivedMXN * 1.08]}
+                        tickFormatter={(value) => {
+                          if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
+                          if (value >= 1000) return `${(value / 1000).toFixed(0)}k`
+                          return String(value)
+                        }}
+                      />
+
+                      <Tooltip
+                        formatter={(value: number) =>
+                          new Intl.NumberFormat("es-MX", {
+                            style: "currency",
+                            currency: "MXN",
+                            maximumFractionDigits: 0,
+                          }).format(value)
+                        }
+                      />
+
+                      <Bar 
+                        dataKey="valor" 
+                        radius={[6, 6, 0, 0]}
+                        animationDuration={500}
+                        animationEasing="ease-out"
+
+                        
+                      >
+                      <LabelList
+                        dataKey="valor"
+                        position="top"
+                        formatter={(value: number) =>
+                          new Intl.NumberFormat("es-MX", {
+                            style: "currency",
+                            currency: "MXN",
+                            maximumFractionDigits: 0,
+                          }).format(value)
+                        }
+                      />  
+
+                        {chartData.map((entry, index) => {
+                          const fill =
+                            entry.metodo === "Banco"
+                              ? "#ef4444"
+                              : entry.metodo === "Remesadora"
+                                ? "#f59e0b"
+                                : "#f7931a"
+
+                          return <Cell key={`cell-${index}`} fill={fill} />
+
+                       })}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+              </div>
+                <p className="text-xs text-[#94a3b8] mt-4 leading-relaxed">
+                  Horizonte actual: {projectionYears} {projectionYears === 1 ? "año" : "años"}.
+                  Cada barra representa el total acumulado estimado por método al cierre del periodo seleccionado.
+                </p>
+            </div>
+
+            {/* Gráfica de líneas para comisiones acumuladas */}
+            <div className="mt-8 bg-[#0f172a]/40 border border-[#334155]/30 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-white mb-2">
+                Comisiones acumuladas pagadas
+              </h3>
+              <p className="text-sm text-[#94a3b8] mb-4">
+                Comparación del costo total acumulado por método durante el horizonte seleccionado.
+              </p>
 
               <div className="h-[320px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
+                  <LineChart data={feesChartData} margin={{ top: 20, right: 110, left: 10, bottom: 10 }}>
                     <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
                     <XAxis
                       dataKey="year"
                       stroke="#94a3b8"
                       label={{ value: "Años", position: "insideBottom", offset: -5 }}
                     />
-                    <YAxis stroke="#94a3b8" />
-                    <Tooltip />
+                    <YAxis
+                      stroke="#94a3b8"
+                      tickFormatter={(value) => {
+                        if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
+                        if (value >= 1000) return `${(value / 1000).toFixed(0)}k`
+                        return String(value)
+                      }}
+                    />
+                    <Tooltip
+                      formatter={(value: number) =>
+                        new Intl.NumberFormat("es-MX", {
+                          style: "currency",
+                          currency: "MXN",
+                          maximumFractionDigits: 0,
+                        }).format(value)
+                      }
+                    />
                     <Legend />
 
                     <Line
@@ -504,6 +664,10 @@ export function ResultsDashboardRemesas({
                       dataKey="Banco"
                       stroke="#ef4444"
                       strokeWidth={3}
+                      dot={renderEndDot("#ef4444") as any}
+                      activeDot={{ r: 5 }}
+                      animationDuration={500}
+                      animationEasing="ease-out"
                     />
 
                     <Line
@@ -511,18 +675,31 @@ export function ResultsDashboardRemesas({
                       dataKey="Remesadora"
                       stroke="#f59e0b"
                       strokeWidth={3}
+                      dot={renderEndDot("#f59e0b") as any}
+                      activeDot={{ r: 5 }}
+                      animationDuration={500}
+                      animationEasing="ease-out"
                     />
 
                     <Line
                       type="monotone"
                       dataKey="Bitcoin"
-                      stroke="#f7931a"
-                      strokeWidth={3}
+                      stroke="#22c55e"
+                      strokeWidth={4}
+                      dot={renderEndDot("#22c55e") as any}
+                      activeDot={{ r: 6 }}
+                      animationDuration={500}
+                      animationEasing="ease-out"
                     />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
+              <p className="text-xs text-[#94a3b8] mt-4 leading-relaxed">
+                Esta gráfica muestra cómo crece con el tiempo el dinero perdido en comisiones por método a lo largo de {projectionYears} {projectionYears === 1 ? "año" : "años"}.
+              </p>
             </div>
+                      
+                      {/* Proyección acumulada con slider */}
 
             <div className="mb-6">
                 <input
@@ -554,7 +731,7 @@ export function ResultsDashboardRemesas({
 
                 <div className="rounded-xl border border-[#334155]/40 bg-[#0f172a]/60 p-4">
                     <p className="text-xs uppercase tracking-wide text-[#94a3b8] mb-1">
-                        Total recibido estimado
+                        Total recibido acumulado por método 
                     </p>
                     <p className="text-2xl font-bold text-white">
                         {formatMoney(selectedProjection.totalReceivedMXN, "MXN")}
