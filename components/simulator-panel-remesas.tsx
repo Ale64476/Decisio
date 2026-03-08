@@ -3,7 +3,21 @@
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, Play, Wallet, Globe, ArrowRightLeft, Network, Coins, CheckCircle2, ArrowRight, Lightbulb, Zap, Shield, TrendingUp } from "lucide-react"
+import {
+  ArrowLeft,
+  Play,
+  Wallet,
+  Globe,
+  ArrowRightLeft,
+  Network,
+  Coins,
+  CheckCircle2,
+  ArrowRight,
+  Lightbulb,
+  Zap,
+  Shield,
+  TrendingUp,
+} from "lucide-react"
 import { useState } from "react"
 
 interface SimulatorPanelProps {
@@ -13,11 +27,9 @@ interface SimulatorPanelProps {
 }
 
 const montoOptions = ["$100", "$300", "$500", "$1,000"]
-const origenOptions = ["Estados Unidos", "Canada", "Espana"]
-const destinoOptions = ["Mexico", "Guatemala", "Colombia"]
-const frecuenciaOptions = ["Unica vez", "Semanal", "Quincenal", "Mensual"]
+const origenOptions = ["Estados Unidos", "Canada"]
+const frecuenciaOptions = ["Única", "Semanal", "Quincenal", "Mensual"]
 const metodoOptions = ["Bitcoin", "Remesadora", "Banco"]
-const anosOptions = ["1 ano", "3 anos", "5 anos", "10 anos"]
 
 const transactionSteps = [
   {
@@ -25,92 +37,115 @@ const transactionSteps = [
     label: "Origen",
     icon: Wallet,
     color: "#3b82f6",
-    description: "El remitente inicia la remesa desde el país de origen y define el monto a enviar."
-  },
-  {
-    id: "conversion",
-    label: "Conversión",
-    icon: ArrowRightLeft,
-    color: "#8b5cf6",
-    description: "Se calcula el valor de envío, comisiones estimadas y la conversión necesaria para la operación."
+    description:
+      "Tu remesa comienza en el país de origen. Aquí el dinero en moneda local se convierte a su equivalente en bitcoin y se prepara para enviarse desde una wallet o plataforma compatible.",
   },
   {
     id: "red",
     label: "Red",
     icon: Network,
     color: "#06b6d4",
-    description: "La remesa entra al sistema de procesamiento o red elegida para ser transmitida."
+    description:
+      "La remesa ya entró a la red Bitcoin. En esta etapa, el valor empieza a transmitirse digitalmente sin seguir el camino tradicional de una remesadora o banco.",
   },
   {
-    id: "validacion",
-    label: "Validación",
+    id: "mempool",
+    label: "Mempool",
+    icon: ArrowRightLeft,
+    color: "#8b5cf6",
+    description:
+      "Antes de confirmarse, la transacción entra a una sala de espera llamada mempool. Ahí permanece hasta que pueda ser tomada para validación.",
+  },
+  {
+    id: "mineria",
+    label: "Minería",
     icon: Shield,
     color: "#f59e0b",
-    description: "La operación se valida para confirmar que los datos, monto y ruta del envío sean correctos."
+    description:
+      "La red verifica que la remesa sea válida y que pueda añadirse al siguiente bloque. Este proceso aporta seguridad y evita envíos inválidos o duplicados.",
   },
   {
-    id: "liquidacion",
-    label: "Liquidación",
+    id: "bloque",
+    label: "Bloque",
     icon: Coins,
     color: "#22c55e",
-    description: "El sistema consolida el envío y prepara la entrega del monto correspondiente al destinatario."
+    description:
+      "La transacción ya fue incluida en un bloque. Eso significa que la remesa alcanzó un estado mucho más sólido dentro de la blockchain.",
   },
   {
-    id: "recepcion",
-    label: "Recepción",
+    id: "destino",
+    label: "Destino",
     icon: CheckCircle2,
     color: "#10b981",
-    description: "La persona destinataria recibe finalmente la remesa en el país de destino."
-  }
+    description:
+      "La remesa ya llegó a destino. Una vez confirmada, el valor puede mantenerse digitalmente o convertirse a pesos mexicanos para que el destinatario lo reciba.",
+  },
 ]
 
-export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: SimulatorPanelProps) {
+export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResults }: SimulatorPanelProps) {
   const [selectedMonto, setSelectedMonto] = useState("$500")
   const [selectedMetodo, setSelectedMetodo] = useState("Bitcoin")
   const [selectedFrecuencia, setSelectedFrecuencia] = useState("Mensual")
   const [selectedOrigen, setSelectedOrigen] = useState("Estados Unidos")
-  const [selectedDestino, setSelectedDestino] = useState("Mexico")
-  const [selectedAnos, setSelectedAnos] = useState("5 años")
-  
+
   const [educativeMode, setEducativeMode] = useState(true)
   const [isSimulating, setIsSimulating] = useState(false)
   const [simulationFinished, setSimulationFinished] = useState(false)
   const [activeStep, setActiveStep] = useState<string | null>(null)
   const [completedSteps, setCompletedSteps] = useState<string[]>([])
 
+  const selectedDestino = "Mexico"
+
   const getCountryFlag = (country: string) => {
     const flags: Record<string, string> = {
       "Estados Unidos": "🇺🇸",
-      "Canada": "🇨🇦",
-      "Espana": "🇪🇸",
-      "Mexico": "🇲🇽",
-      "Guatemala": "🇬🇹",
-      "Colombia": "🇨🇴"
+      Canada: "🇨🇦",
+      Mexico: "🇲🇽",
     }
     return flags[country] || "🌐"
   }
 
-  const getMontoNumber = (monto: string) => parseInt(monto.replace(/[^\d]/g, ''))
+  const getCurrencyCode = (country: string) => {
+    const currencies: Record<string, string> = {
+      "Estados Unidos": "USD",
+      Canada: "CAD",
+      Mexico: "MXN",
+    }
+    return currencies[country] || "N/A"
+  }
+
+  const getMontoNumber = (monto: string) => parseInt(monto.replace(/[^\d]/g, ""))
+
   const estimatedFee =
     selectedMetodo === "Bitcoin"
-        ? Math.max(2.5, getMontoNumber(selectedMonto) * 0.005)
-        : selectedMetodo === "Remesadora"
-            ? Math.max(6, getMontoNumber(selectedMonto) * 0.035)
-            : Math.max(8, getMontoNumber(selectedMonto) * 0.045)
+      ? Math.max(2.5, getMontoNumber(selectedMonto) * 0.005)
+      : selectedMetodo === "Remesadora"
+        ? Math.max(6, getMontoNumber(selectedMonto) * 0.035)
+        : Math.max(8, getMontoNumber(selectedMonto) * 0.045)
+
   const estimatedReceived = getMontoNumber(selectedMonto) - estimatedFee
-  const estimatedTime = selectedMetodo === "Bitcoin" 
-  ? "10-30 min"
-  : selectedMetodo === "Remesadora" 
-  ? "Minutos a horas"
-  : "1-2 dias habiles"
+
+  const estimatedTime =
+    selectedMetodo === "Bitcoin"
+      ? "10-30 min"
+      : selectedMetodo === "Remesadora"
+        ? "Minutos a horas"
+        : "1-2 días hábiles"
+
+  const methodComparisonNote =
+    selectedMetodo !== "Bitcoin"
+      ? `En el MVP, esta animación mantiene el recorrido educativo de una remesa con Bitcoin. ${selectedMetodo} se usa aquí para comparar tiempos y comisiones frente a esa alternativa.`
+      : "Este recorrido educativo muestra cómo una remesa puede procesarse con Bitcoin desde el origen hasta la recepción en México."
 
   const getCurrentStepDescription = () => {
     if (simulationFinished) {
-      return "La simulación de la remesa terminó correctamente. Ya puedes revisar el flujo completo o abrir el panel de resultados."
+      return "La simulación educativa de la remesa terminó correctamente. Ya puedes revisar el flujo completo o abrir el panel de resultados."
     }
 
-    const step = transactionSteps.find(s => s.id === activeStep)
-    return step ? step.description : "Haz clic en 'Ejecutar simulación' para ver el recorrido completo de tu remesa."
+    const step = transactionSteps.find((s) => s.id === activeStep)
+    return step
+      ? step.description
+      : "Haz clic en 'Ejecutar simulación' para recorrer paso a paso cómo una remesa puede enviarse con Bitcoin hasta llegar a México."
   }
 
   const handleRunSimulation = () => {
@@ -148,7 +183,6 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
     return "pendiente"
   }
 
-  const currentStepIndex = transactionSteps.findIndex(s => s.id === activeStep)
   const estimatedProgressPercent = simulationFinished
     ? 100
     : isSimulating
@@ -193,46 +227,40 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
 
   return (
     <div className="min-h-screen bg-[#0f172a] flex flex-col relative overflow-hidden">
-      {/* Background Effects */}
       <div className="absolute inset-0 grid-pattern" />
       <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-[#3b82f6]/5 to-transparent rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-tl from-[#8b5cf6]/5 to-transparent rounded-full blur-3xl pointer-events-none" />
 
-      {/* Header */}
       <header className="relative z-10 flex items-center justify-between px-8 lg:px-12 py-5 border-b border-[#334155]/30 backdrop-blur-sm bg-[#0f172a]/80">
-        <button 
+        <button
           onClick={onBack}
           className="flex items-center gap-2.5 text-[#94a3b8] hover:text-white transition-colors group"
         >
           <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
           <span className="font-medium">Volver</span>
         </button>
+
         <div className="flex items-center gap-4">
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/30 to-[#8b5cf6]/30 rounded-full blur-lg" />
-            <img 
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ajolote%20fintech-GPEqul13Rds1oDQEOr50vslu6pr6lQ.png" 
-              alt="Decisio" 
+            <img
+              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ajolote%20fintech-GPEqul13Rds1oDQEOr50vslu6pr6lQ.png"
+              alt="Decisio"
               className="relative w-10 h-10 object-contain"
             />
           </div>
-          <span className="text-2xl font-bold gradient-text-animated">
-            Remesas internacionales
-          </span>
+          <span className="text-2xl font-bold gradient-text-animated">Remesas internacionales</span>
         </div>
+
         <div className="flex items-center gap-3 bg-[#1e293b]/60 border border-[#334155]/50 rounded-xl px-4 py-2.5 hover:border-[#3b82f6]/30 transition-colors">
-          <Lightbulb className={`w-4 h-4 transition-colors ${educativeMode ? 'text-[#f59e0b]' : 'text-[#64748b]'}`} />
-          <Label htmlFor="educative-mode" className="text-sm text-[#94a3b8] cursor-pointer">Modo educativo</Label>
-          <Switch 
-            id="educative-mode" 
-            checked={educativeMode} 
-            onCheckedChange={setEducativeMode}
-            disabled={isSimulating}
-          />
+          <Lightbulb className={`w-4 h-4 transition-colors ${educativeMode ? "text-[#f59e0b]" : "text-[#64748b]"}`} />
+          <Label htmlFor="educative-mode" className="text-sm text-[#94a3b8] cursor-pointer">
+            Modo educativo
+          </Label>
+          <Switch id="educative-mode" checked={educativeMode} onCheckedChange={setEducativeMode} disabled={isSimulating} />
         </div>
       </header>
 
-      {/* Progress indicator */}
       <div className="relative z-10 px-8 lg:px-12 py-4 border-b border-[#334155]/20">
         <div className="max-w-7xl mx-auto flex items-center gap-3">
           <span className="text-sm text-[#94a3b8]">Paso 2 de 3</span>
@@ -242,24 +270,20 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
         </div>
       </div>
 
-      {/* Main Content - Split Layout */}
       <main className="relative z-10 flex-1 grid lg:grid-cols-2 gap-8 p-8 lg:p-12 overflow-y-auto">
-        {/* LEFT COLUMN - Decision Tree */}
         <div className="space-y-6 flex flex-col">
-          {/* Configuration Card */}
           <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl p-8 shadow-lg shadow-[#1e293b]/50">
             <div className="flex items-center gap-3 mb-8">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#3b82f6]/20 to-[#3b82f6]/5 border border-[#3b82f6]/20 flex items-center justify-center">
                 <span className="text-lg font-bold text-[#3b82f6]">1</span>
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-white">Configura tu simulación</h2>
-                <p className="text-xs text-[#64748b]">Define los datos del envío internacional</p>
+                <h2 className="text-xl font-semibold text-white">Configura tu remesa</h2>
+                <p className="text-xs text-[#64748b]">Define los datos principales del envío a México</p>
               </div>
             </div>
-            
+
             <div className="space-y-8">
-              {/* Monto Section */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-[#3b82f6]/10 border border-[#3b82f6]/20 flex items-center justify-center">
@@ -275,8 +299,8 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
                       disabled={isSimulating}
                       className={`px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${
                         selectedMonto === option
-                          ? 'bg-[#3b82f6] text-white shadow-lg shadow-[#3b82f6]/30 scale-105'
-                          : 'bg-[#0f172a]/60 border border-[#334155]/50 text-[#94a3b8] hover:bg-[#3b82f6]/15 hover:border-[#3b82f6]/40 hover:text-white hover:shadow-md'
+                          ? "bg-[#3b82f6] text-white shadow-lg shadow-[#3b82f6]/30 scale-105"
+                          : "bg-[#0f172a]/60 border border-[#334155]/50 text-[#94a3b8] hover:bg-[#3b82f6]/15 hover:border-[#3b82f6]/40 hover:text-white hover:shadow-md"
                       }`}
                     >
                       {option}
@@ -285,7 +309,6 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
                 </div>
               </div>
 
-              {/* Origen Section */}
               <div className="space-y-4 pt-2 border-t border-[#334155]/30">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-[#3b82f6]/10 border border-[#3b82f6]/20 flex items-center justify-center">
@@ -301,8 +324,8 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
                       disabled={isSimulating}
                       className={`px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${
                         selectedOrigen === option
-                          ? 'bg-[#3b82f6] text-white shadow-lg shadow-[#3b82f6]/30 scale-105'
-                          : 'bg-[#0f172a]/60 border border-[#334155]/50 text-[#94a3b8] hover:bg-[#3b82f6]/15 hover:border-[#3b82f6]/40 hover:text-white hover:shadow-md'
+                          ? "bg-[#3b82f6] text-white shadow-lg shadow-[#3b82f6]/30 scale-105"
+                          : "bg-[#0f172a]/60 border border-[#334155]/50 text-[#94a3b8] hover:bg-[#3b82f6]/15 hover:border-[#3b82f6]/40 hover:text-white hover:shadow-md"
                       }`}
                     >
                       {option}
@@ -311,7 +334,6 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
                 </div>
               </div>
 
-              {/* Destino Section */}
               <div className="space-y-4 pt-2 border-t border-[#334155]/30">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-[#8b5cf6]/10 border border-[#8b5cf6]/20 flex items-center justify-center">
@@ -319,25 +341,15 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
                   </div>
                   <label className="text-sm font-semibold text-[#f8fafc]">País de destino</label>
                 </div>
-                <div className="flex flex-wrap gap-2.5">
-                  {destinoOptions.map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => setSelectedDestino(option)}
-                      disabled={isSimulating}
-                      className={`px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${
-                        selectedDestino === option
-                          ? 'bg-[#8b5cf6] text-white shadow-lg shadow-[#8b5cf6]/30 scale-105'
-                          : 'bg-[#0f172a]/60 border border-[#334155]/50 text-[#94a3b8] hover:bg-[#8b5cf6]/15 hover:border-[#8b5cf6]/40 hover:text-white hover:shadow-md'
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
+                <div className="inline-flex items-center gap-3 px-5 py-3 rounded-xl bg-[#8b5cf6]/15 border border-[#8b5cf6]/35 text-white shadow-lg shadow-[#8b5cf6]/10">
+                  <span className="text-xl">{getCountryFlag(selectedDestino)}</span>
+                  <div className="text-left">
+                    <p className="text-sm font-semibold">{selectedDestino}</p>
+                    <p className="text-xs text-[#cbd5e1]">Destino fijo para este MVP · {getCurrencyCode(selectedDestino)}</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Frecuencia Section */}
               <div className="space-y-4 pt-2 border-t border-[#334155]/30">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20 flex items-center justify-center">
@@ -353,8 +365,8 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
                       disabled={isSimulating}
                       className={`px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${
                         selectedFrecuencia === option
-                          ? 'bg-[#3b82f6] text-white shadow-lg shadow-[#3b82f6]/30 scale-105'
-                          : 'bg-[#0f172a]/60 border border-[#334155]/50 text-[#94a3b8] hover:bg-[#3b82f6]/15 hover:border-[#3b82f6]/40 hover:text-white hover:shadow-md'
+                          ? "bg-[#3b82f6] text-white shadow-lg shadow-[#3b82f6]/30 scale-105"
+                          : "bg-[#0f172a]/60 border border-[#334155]/50 text-[#94a3b8] hover:bg-[#3b82f6]/15 hover:border-[#3b82f6]/40 hover:text-white hover:shadow-md"
                       }`}
                     >
                       {option}
@@ -363,7 +375,6 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
                 </div>
               </div>
 
-              {/* Metodo Section */}
               <div className="space-y-4 pt-2 border-t border-[#334155]/30">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20 flex items-center justify-center">
@@ -379,36 +390,10 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
                       disabled={isSimulating}
                       className={`px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${
                         selectedMetodo === option
-                          ? option === "Bitcoin" 
-                            ? 'bg-gradient-to-r from-[#f59e0b] to-[#f97316] text-white shadow-lg shadow-[#f59e0b]/35 scale-105' 
-                            : 'bg-[#3b82f6] text-white shadow-lg shadow-[#3b82f6]/30 scale-105'
-                          : 'bg-[#0f172a]/60 border border-[#334155]/50 text-[#94a3b8] hover:border-[#f59e0b]/40 hover:text-white hover:shadow-md'
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Periodo Section */}
-              <div className="space-y-4 pt-2 border-t border-[#334155]/30">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#22c55e]/10 border border-[#22c55e]/20 flex items-center justify-center">
-                    <span className="text-sm font-bold text-[#22c55e]">T</span>
-                  </div>
-                  <label className="text-sm font-semibold text-[#f8fafc]">Período de comparación</label>
-                </div>
-                <div className="flex flex-wrap gap-2.5">
-                  {anosOptions.map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => setSelectedAnos(option)}
-                      disabled={isSimulating}
-                      className={`px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${
-                        selectedAnos === option
-                          ? 'bg-[#22c55e] text-white shadow-lg shadow-[#22c55e]/30 scale-105'
-                          : 'bg-[#0f172a]/60 border border-[#334155]/50 text-[#94a3b8] hover:bg-[#22c55e]/15 hover:border-[#22c55e]/40 hover:text-white hover:shadow-md'
+                          ? option === "Bitcoin"
+                            ? "bg-gradient-to-r from-[#f59e0b] to-[#f97316] text-white shadow-lg shadow-[#f59e0b]/35 scale-105"
+                            : "bg-[#3b82f6] text-white shadow-lg shadow-[#3b82f6]/30 scale-105"
+                          : "bg-[#0f172a]/60 border border-[#334155]/50 text-[#94a3b8] hover:border-[#f59e0b]/40 hover:text-white hover:shadow-md"
                       }`}
                     >
                       {option}
@@ -418,9 +403,8 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
               </div>
             </div>
 
-            {/* Execute Button */}
             <div className="mt-8 space-y-3">
-              <Button 
+              <Button
                 onClick={handleRunSimulation}
                 disabled={isSimulating}
                 className="btn-shine w-full bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:opacity-90 text-white py-7 text-base font-semibold rounded-xl shadow-xl shadow-[#3b82f6]/30 transition-all hover:shadow-2xl hover:shadow-[#8b5cf6]/40 disabled:opacity-70 disabled:cursor-not-allowed"
@@ -442,34 +426,28 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
           </div>
         </div>
 
-        {/* RIGHT COLUMN - Simulation Panel */}
         <div className="space-y-6 flex flex-col">
-          {/* Transfer Route */}
           <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl p-8 shadow-lg shadow-[#1e293b]/50">
             <div className="flex items-center gap-3 mb-8">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8b5cf6]/20 to-[#8b5cf6]/5 border border-[#8b5cf6]/20 flex items-center justify-center">
                 <span className="text-lg font-bold text-[#8b5cf6]">2</span>
               </div>
-
               <div>
-                <h2 className="text-xl font-semibold text-white">Viaje de la transferencia</h2>
-                <p className="text-xs text-[#64748b]">Visualiza el flujo de tu transacción</p>
+                <h2 className="text-xl font-semibold text-white">Ruta del envío</h2>
+                <p className="text-xs text-[#64748b]">Tu remesa viaja desde el país de origen hasta México</p>
               </div>
             </div>
 
-            {/* Transfer Route Visualization */}
             <div className="bg-gradient-to-b from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-8 rounded-xl mb-8">
               <div className="flex items-center justify-between">
-                {/* Origin */}
                 <div className="text-center flex-1">
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#3b82f6]/25 to-[#3b82f6]/5 border-2 border-[#3b82f6]/50 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[#3b82f6]/20">
                     <span className="text-3xl">{getCountryFlag(selectedOrigen)}</span>
                   </div>
                   <p className="text-xs font-bold text-white mb-1">{selectedOrigen}</p>
-                  <p className="text-xs text-[#64748b] font-medium">Origen</p>
+                  <p className="text-xs text-[#64748b] font-medium">Origen · {getCurrencyCode(selectedOrigen)}</p>
                 </div>
 
-                {/* Connection */}
                 <div className="flex-1 mx-6 flex items-center justify-center">
                   <div className="relative w-full h-12 flex items-center justify-center">
                     <div className="absolute inset-0 flex items-center">
@@ -481,42 +459,40 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
                   </div>
                 </div>
 
-                {/* Destination */}
                 <div className="text-center flex-1">
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#22c55e]/25 to-[#22c55e]/5 border-2 border-[#22c55e]/50 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[#22c55e]/20">
                     <span className="text-3xl">{getCountryFlag(selectedDestino)}</span>
                   </div>
                   <p className="text-xs font-bold text-white mb-1">{selectedDestino}</p>
-                  <p className="text-xs text-[#64748b] font-medium">Destino</p>
+                  <p className="text-xs text-[#64748b] font-medium">Destino · {getCurrencyCode(selectedDestino)}</p>
                 </div>
               </div>
 
-              {/* Method Badge */}
               <div className="mt-6 flex items-center justify-center">
-                <div className={`px-6 py-2.5 rounded-lg font-semibold text-white text-xs shadow-lg ${
-                  selectedMetodo === "Bitcoin"
-                    ? 'bg-gradient-to-r from-[#f59e0b] to-[#f97316] shadow-[#f59e0b]/30'
-                    : 'bg-[#3b82f6] shadow-[#3b82f6]/30'
-                }`}>
+                <div
+                  className={`px-6 py-2.5 rounded-lg font-semibold text-white text-xs shadow-lg ${
+                    selectedMetodo === "Bitcoin"
+                      ? "bg-gradient-to-r from-[#f59e0b] to-[#f97316] shadow-[#f59e0b]/30"
+                      : "bg-[#3b82f6] shadow-[#3b82f6]/30"
+                  }`}
+                >
                   {selectedMetodo}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Bitcoin Transaction Journey - Horizontal Process */}
           <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl p-8 shadow-lg shadow-[#1e293b]/50">
             <div className="flex items-center gap-3 mb-8">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#22c55e]/20 to-[#22c55e]/5 border border-[#22c55e]/20 flex items-center justify-center">
                 <span className="text-lg font-bold text-[#22c55e]">3</span>
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-white">Viaje de la remesa</h2>
-                <p className="text-xs text-[#64748b]">Sigue el recorrido del dinero desde el origen hasta la recepción final</p>
+                <h2 className="text-xl font-semibold text-white">Recorrido educativo</h2>
+                <p className="text-xs text-[#64748b]">Así se procesa una remesa con Bitcoin, paso a paso</p>
               </div>
             </div>
 
-            {/* Horizontal Process Flow */}
             <div className="bg-gradient-to-b from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 px-4 py-6 lg:px-5 lg:py-7 rounded-xl mb-6 overflow-hidden">
               <div className="flex items-start justify-between gap-1 w-full">
                 {transactionSteps.map((step, index) => {
@@ -525,7 +501,6 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
 
                   return (
                     <div key={step.id} className="flex items-center flex-1 min-w-0">
-                      {/* Step Node */}
                       <div className="flex flex-col items-center shrink-0">
                         <div className="relative">
                           {state === "activo" && (
@@ -583,7 +558,6 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
                         </p>
                       </div>
 
-                      {/* Connector Line */}
                       {index < transactionSteps.length - 1 && (
                         <div className="flex-1 h-[3px] mx-1.5 lg:mx-2 rounded-full bg-[#334155] relative overflow-hidden min-w-[12px]">
                           {completedSteps.includes(step.id) && (
@@ -620,34 +594,32 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
                 })}
               </div>
             </div>
-            
-            {/* Educational Card */}
-            {educativeMode && (
-              <div className="relative z-10 px-8 lg:px-12 pt-6">
-                <div className="max-w-7xl mx-auto">
-                  <div className="glow-blue bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/60 border border-[#3b82f6]/30 p-6 rounded-2xl shadow-lg shadow-[#3b82f6]/10">
-                    <div className="flex items-start gap-4">
-                      <div className="shrink-0 relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/40 to-[#8b5cf6]/30 rounded-full blur-lg" />
-                        <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-[#1e293b] to-[#0f172a] flex items-center justify-center border border-[#3b82f6]/40 shadow-lg">
-                          <img 
-                            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ajolote%20fintech-GPEqul13Rds1oDQEOr50vslu6pr6lQ.png" 
-                            alt="Decisio Assistant" 
-                            className="w-7 h-7 object-contain"
-                          />
-                        </div>
-                      </div>
 
-                      <div className="flex-1 pt-1">
-                        <p className="text-sm font-bold text-[#3b82f6] mb-2">Decisio</p>
-                        <p className="text-[#cbd5e1] text-sm leading-relaxed">
-                          {isSimulating
-                            ? getCurrentStepDescription()
-                            : simulationFinished
-                              ? "La simulación de la remesa ha finalizado. Puedes revisar el recorrido completo o abrir el panel de resultados detallados."
-                              : "Los parámetros que seleccionas determinan cómo se enviará tu remesa, cuánto tardará en llegar y cuánto recibirá finalmente la otra persona."}
-                        </p>
+            {educativeMode && (
+              <div className="mt-6">
+                <div className="glow-blue bg-gradient-to-br from-[#1e293b]/80 to-[#0f172a]/60 border border-[#3b82f6]/30 p-6 rounded-2xl shadow-lg shadow-[#3b82f6]/10">
+                  <div className="flex items-start gap-4">
+                    <div className="shrink-0 relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/40 to-[#8b5cf6]/30 rounded-full blur-lg" />
+                      <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-[#1e293b] to-[#0f172a] flex items-center justify-center border border-[#3b82f6]/40 shadow-lg">
+                        <img
+                          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ajolote%20fintech-GPEqul13Rds1oDQEOr50vslu6pr6lQ.png"
+                          alt="Decisio Assistant"
+                          className="w-7 h-7 object-contain"
+                        />
                       </div>
+                    </div>
+
+                    <div className="flex-1 pt-1">
+                      <p className="text-sm font-bold text-[#3b82f6] mb-2">Decisio</p>
+                      <p className="text-[#cbd5e1] text-sm leading-relaxed">
+                        {isSimulating
+                          ? getCurrentStepDescription()
+                          : simulationFinished
+                            ? "La simulación educativa de la remesa ha finalizado. Puedes revisar el recorrido completo o abrir el panel de resultados detallados."
+                            : "Este módulo te explica cómo una remesa puede procesarse con Bitcoin desde el país de origen hasta México, mientras comparas el tiempo y el costo frente a otros métodos."}
+                      </p>
+                      <p className="text-xs text-[#93c5fd] mt-3 leading-relaxed">{methodComparisonNote}</p>
                     </div>
                   </div>
                 </div>
@@ -655,7 +627,6 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
             )}
           </div>
 
-          {/* KPI Cards - Simulation Outcome */}
           <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl p-8 shadow-lg shadow-[#1e293b]/50">
             <div className="flex items-center gap-3 mb-8">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#f59e0b]/20 to-[#f59e0b]/5 border border-[#f59e0b]/20 flex items-center justify-center">
@@ -663,39 +634,39 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-white">Resumen del envío</h2>
-                <p className={`text-xs ${isSimulating ? 'text-[#3b82f6]' : simulationFinished ? 'text-[#22c55e]' : 'text-[#64748b]'}`}>
+                <p className={`text-xs ${isSimulating ? "text-[#3b82f6]" : simulationFinished ? "text-[#22c55e]" : "text-[#64748b]"}`}>
                   {isSimulating
-                    ? `Etapa: ${activeStep ? transactionSteps.find(s => s.id === activeStep)?.label : 'Preparando...'}`
+                    ? `Etapa: ${activeStep ? transactionSteps.find((s) => s.id === activeStep)?.label : "Preparando..."}`
                     : simulationFinished
-                      ? 'Simulación completada'
-                      : 'Haz clic en ejecutar para ver el resumen del envío'}
+                      ? "Simulación completada"
+                      : "Haz clic en ejecutar para ver el resumen del envío"}
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-6">
-              {/* Monto Enviado */}
               <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
                 <p className="text-xs font-semibold text-[#94a3b8] mb-3">Monto enviado</p>
-                <p className="text-2xl font-bold text-white mb-1">{selectedMonto}</p>
-                <p className="text-xs text-[#64748b]">Cantidad original</p>
+                <p className="text-2xl font-bold text-white mb-1">
+                  {selectedMonto} {getCurrencyCode(selectedOrigen)}
+                </p>
+                <p className="text-xs text-[#64748b]">Cantidad original desde {selectedOrigen}</p>
               </div>
 
-              {/* Comisión */}
               <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
                 <p className="text-xs font-semibold text-[#94a3b8] mb-3">Comisión estimada</p>
                 <p className="text-2xl font-bold text-[#f59e0b]">${estimatedFee.toFixed(2)}</p>
                 <p className="text-xs text-[#64748b]">({((estimatedFee / getMontoNumber(selectedMonto)) * 100).toFixed(2)}%)</p>
               </div>
 
-              {/* Monto Recibido */}
               <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
-                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Monto recibido</p>
-                <p className="text-2xl font-bold text-[#22c55e]">${estimatedReceived.toFixed(2)}</p>
-                <p className="text-xs text-[#64748b]">Después de comisiones</p>
+                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Valor neto estimado</p>
+                <p className="text-2xl font-bold text-[#22c55e]">
+                  ${estimatedReceived.toFixed(2)} {getCurrencyCode(selectedOrigen)}
+                </p>
+                <p className="text-xs text-[#64748b]">Antes de la conversión final a {getCurrencyCode(selectedDestino)}</p>
               </div>
 
-              {/* Tiempo Estimado */}
               <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
                 <p className="text-xs font-semibold text-[#94a3b8] mb-3">Tiempo estimado</p>
                 <p className="text-2xl font-bold text-[#3b82f6]">{estimatedTime}</p>
@@ -703,25 +674,24 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
               </div>
             </div>
 
-            {/* Estado Actual */}
             <div className="bg-gradient-to-r from-[#3b82f6]/10 to-[#8b5cf6]/10 border border-[#3b82f6]/30 p-6 rounded-xl">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-3 h-3 rounded-full bg-[#3b82f6] animate-pulse" />
-                <p className="text-sm font-semibold text-white">Estado actual de la transacción</p>
+                <p className="text-sm font-semibold text-white">Estado actual de la remesa</p>
               </div>
               <p className="text-sm text-[#cbd5e1]">
                 {isSimulating
                   ? activeStep
-                    ? `En progreso: ${transactionSteps.find(s => s.id === activeStep)?.label}`
-                    : 'Iniciando simulación...'
+                    ? `En progreso: ${transactionSteps.find((s) => s.id === activeStep)?.label}`
+                    : "Iniciando simulación..."
                   : simulationFinished
-                    ? 'Simulación finalizada. El flujo completó todas las etapas.'
-                    : 'Esperando para ejecutar simulación'}
+                    ? "Simulación finalizada. El flujo completó todas las etapas educativas del envío."
+                    : "Esperando para ejecutar simulación"}
               </p>
 
               {(isSimulating || simulationFinished) && (
                 <div className="w-full h-2 bg-[#0f172a]/60 rounded-full mt-4 overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-gradient-to-r from-[#3b82f6] to-[#22c55e] rounded-full transition-all duration-300"
                     style={{ width: `${estimatedProgressPercent}%` }}
                   />
