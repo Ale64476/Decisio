@@ -17,6 +17,16 @@ import {
   PackageCheck,
   BadgeDollarSign,
 } from "lucide-react"
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  ResponsiveContainer,
+  Legend,
+} from "recharts"
 
 //recibimos los parametros desde lel simulador
 interface ResultsDashboardProps {
@@ -215,6 +225,25 @@ export function ResultsDashboardRemesas({
 
   const savedVsBankProjection =
     selectedProjection.totalReceivedMXN - bankProjection.totalReceivedMXN
+
+  const chartData = Array.from({ length: projectionYears }, (_, i) => {
+    const year = i + 1
+
+    const projections = comparisonRows.map((row) =>
+      buildProjectionForMethod(row, year)
+    )
+
+    const banco = projections.find((p) => p.metodo === "Banco")
+    const remesadora = projections.find((p) => p.metodo === "Remesadora")
+    const bitcoin = projections.find((p) => p.metodo === "Bitcoin")
+
+    return {
+      year,
+      Banco: banco?.totalReceivedMXN ?? 0,
+      Remesadora: remesadora?.totalReceivedMXN ?? 0,
+      Bitcoin: bitcoin?.totalReceivedMXN ?? 0,
+    }
+  })
 
     return (
     <div className="min-h-screen bg-[#0f172a] relative overflow-hidden">
@@ -450,6 +479,49 @@ export function ResultsDashboardRemesas({
                 <div className="px-3 py-1.5 rounded-full bg-[#0f172a]/80 border border-[#334155]/40 text-xs font-medium text-[#cbd5e1]">
                     Horizonte: {projectionYears} {projectionYears === 1 ? "año" : "años"}
                 </div>
+            </div>
+
+            <div className="mt-8 bg-[#0f172a]/40 border border-[#334155]/30 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">
+                Crecimiento acumulado de remesas
+              </h3>
+
+              <div className="h-[320px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="year"
+                      stroke="#94a3b8"
+                      label={{ value: "Años", position: "insideBottom", offset: -5 }}
+                    />
+                    <YAxis stroke="#94a3b8" />
+                    <Tooltip />
+                    <Legend />
+
+                    <Line
+                      type="monotone"
+                      dataKey="Banco"
+                      stroke="#ef4444"
+                      strokeWidth={3}
+                    />
+
+                    <Line
+                      type="monotone"
+                      dataKey="Remesadora"
+                      stroke="#f59e0b"
+                      strokeWidth={3}
+                    />
+
+                    <Line
+                      type="monotone"
+                      dataKey="Bitcoin"
+                      stroke="#f7931a"
+                      strokeWidth={3}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
 
             <div className="mb-6">
