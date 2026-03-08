@@ -23,7 +23,7 @@ import { useState } from "react"
 interface SimulatorPanelProps {
   scenario: string
   onBack: () => void
-  onViewResults: () => void
+  onViewResults: (query?: string) => void
 }
 
 const montoOptions = ["$100", "$300", "$500", "$1,000"]
@@ -114,6 +114,14 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
     return currencies[country] || "N/A"
   }
 
+  const getReferenceExchangeRate = (origen: string, destino: string) => {
+    if (origen === "Estados Unidos" && destino === "México") return 17.0
+    if (origen === "Canadá" && destino === "México") return 12.5
+    return 17.0
+  }
+
+  
+
   const getMontoNumber = (monto: string) => parseInt(monto.replace(/[^\d]/g, ""))
 
   const getExchangeRateToMXN = (country: string) => {
@@ -191,6 +199,26 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
     }
 
     simulateNextStep()
+  }
+
+  const handleViewResults = () => {
+    const montoNumerico = getMontoNumber(selectedMonto)
+    const monedaOrigen = getCurrencyCode(selectedOrigen)
+    const monedaDestino = getCurrencyCode(selectedDestino)
+    const tipoCambio = getReferenceExchangeRate(selectedOrigen, selectedDestino)
+
+    const params = new URLSearchParams({
+      metodo: selectedMetodo,
+      origen: selectedOrigen,
+      destino: selectedDestino,
+      monto: String(montoNumerico),
+      frecuencia: selectedFrecuencia,
+      monedaOrigen,
+      monedaDestino,
+      tipoCambio: String(tipoCambio),
+    })
+
+    onViewResults(`?${params.toString()}`)
   }
 
   const getStepState = (stepId: string) => {
@@ -432,7 +460,7 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
 
               {simulationFinished && (
                 <Button
-                  onClick={onViewResults}
+                  onClick={handleViewResults}  
                   className="w-full bg-[#0f172a] border border-[#22c55e]/40 hover:bg-[#22c55e]/10 text-white py-7 text-base font-semibold rounded-xl transition-all"
                 >
                   Ver resultados detallados

@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { useState } from "react"
 import {
   ArrowLeft,
   RefreshCw,
@@ -17,7 +18,16 @@ import {
   BadgeDollarSign,
 } from "lucide-react"
 
+//recibimos los parametros desde lel simulador
 interface ResultsDashboardProps {
+  metodoSeleccionado: string
+  origen: string
+  destino: string
+  monedaOrigen: string
+  monedaDestino: string
+  montoBase: number
+  frecuencia: string
+  tipoCambioReferencia: number
   onBack: () => void
   onNewSimulation: () => void
 }
@@ -32,7 +42,7 @@ type ComparisonRow = {
   destacado?: boolean
 }
 
-const referenceScenario = {
+const defaultReferenceScenario = {
   origen: "Estados Unidos",
   destino: "México",
   monedaOrigen: "USD",
@@ -71,10 +81,15 @@ const comparisonData: ComparisonRow[] = [
   },
 ]
 
-const selectedMethod = comparisonData.find((row) => row.metodo === referenceScenario.metodoSeleccionado) ?? comparisonData[2]
-const bestReceivedMXN = Math.max(...comparisonData.map((row) => row.recibidoMXN))
-const worstReceivedMXN = Math.min(...comparisonData.map((row) => row.recibidoMXN))
-const savedVsWorst = bestReceivedMXN - worstReceivedMXN
+const annualInflationRate = 0.04
+
+const getTransfersPerYear = (frecuencia: string) => {
+  if (frecuencia === "Única" || frecuencia === "Unica") return 1
+  if (frecuencia === "Semanal") return 52
+  if (frecuencia === "Quincenal") return 24
+  if (frecuencia === "Mensual") return 12
+  return 12
+}
 
 const timelineSteps = [
   {
@@ -116,8 +131,92 @@ const formatMoney = (value: number, currency: string) => {
   }).format(value)
 }
 
-export function ResultsDashboardRemesas({ onBack, onNewSimulation }: ResultsDashboardProps) {
-  return (
+export function ResultsDashboardRemesas({ 
+  metodoSeleccionado,
+  origen,
+  destino,
+  monedaOrigen,
+  monedaDestino,
+  montoBase,
+  frecuencia,
+  tipoCambioReferencia,
+  onBack,
+  onNewSimulation,
+}: ResultsDashboardProps) {
+  const [projectionYears, setProjectionYears] = useState(5)
+
+  const referenceScenario = {
+    ...defaultReferenceScenario,
+    metodoSeleccionado,
+    origen,
+    destino,
+    monedaOrigen,
+    monedaDestino,
+    montoBase,
+    frecuencia,
+    tipoCambioReferencia,
+  }
+
+  const comparisonRows = comparisonData.map((row) => {
+    const ratio = row.netoOrigen / defaultReferenceScenario.montoBase
+    const netoOrigen = referenceScenario.montoBase * ratio
+    const recibidoMXN = netoOrigen * referenceScenario.tipoCambioReferencia
+    const comision = referenceScenario.montoBase - netoOrigen
+
+    return {
+      ...row,
+      monedaOrigen: referenceScenario.monedaOrigen,
+      netoOrigen,
+      recibidoMXN,
+      comision,
+    }
+  })
+
+  const selectedMethod =
+    comparisonRows.find((row) => row.metodo === referenceScenario.metodoSeleccionado) ??
+    comparisonRows[2]
+
+  const bestReceivedMXN = Math.max(...comparisonRows.map((row) => row.recibidoMXN))
+  const worstReceivedMXN = Math.min(...comparisonRows.map((row) => row.recibidoMXN))
+  const savedVsWorst = bestReceivedMXN - worstReceivedMXN
+
+  const buildProjectionForMethod = (row: ComparisonRow, years: number) => {
+    const totalTransfers = getTransfersPerYear(referenceScenario.frecuencia) * years
+    const totalBaseOrigen = referenceScenario.montoBase * totalTransfers
+    const totalFees = row.comision * totalTransfers
+    const totalNetOrigen = row.netoOrigen * totalTransfers
+    const totalReceivedMXN = row.recibidoMXN * totalTransfers
+    const realValueMXN = totalReceivedMXN / Math.pow(1 + annualInflationRate, years)
+
+    return {
+      metodo: row.metodo,
+      tiempo: row.tiempo,
+      destacado: row.destacado,
+      totalTransfers,
+      totalBaseOrigen,
+      totalFees,
+      totalNetOrigen,
+      totalReceivedMXN,
+      realValueMXN,
+    }
+  }
+
+  const projectionRows = comparisonRows.map((row) =>
+    buildProjectionForMethod(row, projectionYears)
+  )
+
+  const selectedProjection =
+    projectionRows.find((row) => row.metodo === referenceScenario.metodoSeleccionado) ??
+    projectionRows[2]
+
+  const bankProjection =
+    projectionRows.find((row) => row.metodo === "Banco") ??
+    projectionRows[0]
+
+  const savedVsBankProjection =
+    selectedProjection.totalReceivedMXN - bankProjection.totalReceivedMXN
+
+    return (
     <div className="min-h-screen bg-[#0f172a] relative overflow-hidden">
       <div className="fixed inset-0 grid-pattern pointer-events-none" />
       <div className="fixed top-0 right-0 w-[800px] h-[800px] bg-gradient-to-bl from-[#22c55e]/5 via-transparent to-transparent rounded-full blur-3xl pointer-events-none" />
@@ -260,7 +359,9 @@ export function ResultsDashboardRemesas({ onBack, onNewSimulation }: ResultsDash
             <p className="text-3xl font-bold text-white mb-2">
               {formatMoney(selectedMethod.recibidoMXN, referenceScenario.monedaDestino)}
             </p>
-            <p className="text-sm text-[#22c55e]">Estimación con tipo de cambio de referencia: {referenceScenario.tipoCambioReferencia} MXN por USD</p>
+            <p className="text-sm text-[#22c55e]">
+              Estimación con tipo de cambio de referencia: {referenceScenario.tipoCambioReferencia} {referenceScenario.monedaDestino} por {referenceScenario.monedaOrigen}
+            </p>
           </div>
 
           <div className="card-hover bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 p-6 rounded-2xl">
@@ -278,33 +379,39 @@ export function ResultsDashboardRemesas({ onBack, onNewSimulation }: ResultsDash
         <section className="grid xl:grid-cols-[1.3fr_0.7fr] gap-6">
           <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl overflow-hidden">
             <div className="p-6 border-b border-[#334155]/30">
-              <h3 className="text-xl font-semibold text-white">Comparación de métodos</h3>
+              <h3 className="text-xl font-semibold text-white">Comparación del envío actual</h3>
               <p className="text-sm text-[#64748b] mt-1">
-                Diferencia estimada en comisión, tiempo y recepción final en México.
+                Costo, tiempo y recepción estimada por método para una sola remesa.
               </p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-[#0f172a]/40">
+                    <tr className="bg-[#0f172a]/40">
                     <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Método</th>
                     <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Comisión</th>
                     <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Tiempo</th>
-                    <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Valor neto</th>
-                    <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Recepción estimada</th>
-                  </tr>
+                    <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Recibido estimado</th>
+                    <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Valor real</th>
+                    </tr>
                 </thead>
                 <tbody>
-                  {comparisonData.map((row) => (
+                  {comparisonRows.map((row) => (
                     <tr
-                      key={row.metodo}
-                      className={`border-t border-[#334155]/30 transition-colors ${
-                        row.destacado ? "bg-[#22c55e]/5" : "hover:bg-[#0f172a]/20"
-                      }`}
+                    key={row.metodo}
+                    className={`border-t transition-colors ${
+                        row.metodo === referenceScenario.metodoSeleccionado
+                        ? "bg-[#f7931a]/10 border-[#f7931a]/30"
+                        : "border-[#334155]/30 hover:bg-[#0f172a]/20"
+                    }`}
                     >
                       <td className="py-5 px-6">
-                        <span className={`font-semibold ${row.destacado ? "text-[#22c55e]" : "text-white"}`}>
-                          {row.metodo}
+                        <span
+                        className={`font-semibold ${
+                            row.metodo === referenceScenario.metodoSeleccionado ? "text-[#f7931a]" : "text-white"
+                        }`}
+                        >
+                        {row.metodo}
                         </span>
                       </td>
                       <td className="py-5 px-6 text-white font-medium">
@@ -315,8 +422,12 @@ export function ResultsDashboardRemesas({ onBack, onNewSimulation }: ResultsDash
                         {formatMoney(row.netoOrigen, row.monedaOrigen)}
                       </td>
                       <td className="py-5 px-6">
-                        <span className={`font-semibold ${row.destacado ? "text-[#22c55e]" : "text-white"}`}>
-                          {formatMoney(row.recibidoMXN, referenceScenario.monedaDestino)}
+                        <span
+                        className={`font-semibold ${
+                            row.metodo === referenceScenario.metodoSeleccionado ? "text-[#f7931a]" : "text-white"
+                        }`}
+                        >
+                        {formatMoney(row.recibidoMXN, referenceScenario.monedaDestino)}
                         </span>
                       </td>
                     </tr>
@@ -325,22 +436,80 @@ export function ResultsDashboardRemesas({ onBack, onNewSimulation }: ResultsDash
               </table>
             </div>
           </div>
-
-          <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 p-6 rounded-2xl space-y-5">
-            <h3 className="text-xl font-semibold text-white">Lectura rápida del resultado</h3>
-            <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
-              <p className="text-sm text-[#64748b] mb-1">Recepción más alta estimada</p>
-              <p className="text-2xl font-bold text-white">{formatMoney(bestReceivedMXN, "MXN")}</p>
-              <p className="text-sm text-[#22c55e] mt-2">Bitcoin deja aproximadamente {formatMoney(savedVsWorst, "MXN")} más que la opción menos favorable.</p>
+          
+          <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-[#334155]/40 rounded-2xl p-6 shadow-xl shadow-black/10">
+            <div className="flex items-start justify-between gap-4 mb-5">
+                <div>
+                    <h3 className="text-xl font-semibold text-white">Proyección acumulada</h3>
+                    <p className="text-sm text-[#94a3b8] mt-1">
+                        Impacto estimado de una remesa {referenceScenario.frecuencia.toLowerCase()} de{" "}
+                        {formatMoney(referenceScenario.montoBase, referenceScenario.monedaOrigen)} durante{" "}
+                        {projectionYears} {projectionYears === 1 ? "año" : "años"}.
+                    </p>
+                </div>
+                <div className="px-3 py-1.5 rounded-full bg-[#0f172a]/80 border border-[#334155]/40 text-xs font-medium text-[#cbd5e1]">
+                    Horizonte: {projectionYears} {projectionYears === 1 ? "año" : "años"}
+                </div>
             </div>
-            <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
-              <p className="text-sm text-[#64748b] mb-1">Rango de recepción observado</p>
-              <p className="text-white font-medium">
-                {formatMoney(worstReceivedMXN, "MXN")} - {formatMoney(bestReceivedMXN, "MXN")}
-              </p>
-              <p className="text-sm text-[#94a3b8] mt-2">
-                La diferencia viene principalmente de la comisión aplicada y del tiempo estimado de disponibilidad.
-              </p>
+
+            <div className="mb-6">
+                <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={projectionYears}
+                    onChange={(e) => setProjectionYears(Number(e.target.value))}
+                    className="w-full accent-[#f7931a]"
+                />
+                <div className="flex justify-between text-[11px] text-[#64748b] mt-2">
+                    <span>1 año</span>
+                    <span>10 años</span>
+                </div>
+            </div>
+
+            <div className="grid gap-4">
+                <div className="rounded-xl border border-[#334155]/40 bg-[#0f172a]/60 p-4">
+                    <p className="text-xs uppercase tracking-wide text-[#94a3b8] mb-1">
+                        Ahorro acumulado vs Banco
+                    </p>
+                    <p className="text-2xl font-bold text-[#22c55e]">
+                        {formatMoney(savedVsBankProjection, "MXN")}
+                    </p>
+                    <p className="text-xs text-[#64748b] mt-2">
+                        Diferencia acumulada en recepción estimada frente al banco.
+                    </p>
+                </div>
+
+                <div className="rounded-xl border border-[#334155]/40 bg-[#0f172a]/60 p-4">
+                    <p className="text-xs uppercase tracking-wide text-[#94a3b8] mb-1">
+                        Total recibido estimado
+                    </p>
+                    <p className="text-2xl font-bold text-white">
+                        {formatMoney(selectedProjection.totalReceivedMXN, "MXN")}
+                    </p>
+                    <p className="text-xs text-[#64748b] mt-2">
+                        Suma estimada que podría recibirse en México durante el horizonte seleccionado.
+                    </p>
+                </div>
+
+                <div className="rounded-xl border border-[#334155]/40 bg-[#0f172a]/60 p-4">
+                    <p className="text-xs uppercase tracking-wide text-[#94a3b8] mb-1">
+                        Valor real tras inflación
+                    </p>
+                    <p className="text-2xl font-bold text-[#f8fafc]">
+                        {formatMoney(selectedProjection.realValueMXN, "MXN")}
+                    </p>
+                    <p className="text-xs text-[#64748b] mt-2">
+                        Estimación ajustada con inflación anual de referencia.
+                    </p>
+                </div>
+            </div>
+            <div className="mt-5 rounded-xl border border-[#334155]/30 bg-[#111827]/50 px-4 py-3">
+                <p className="text-xs text-[#94a3b8] leading-relaxed">
+                    Escenario base: {referenceScenario.frecuencia} de{" "}
+                    {formatMoney(referenceScenario.montoBase, referenceScenario.monedaOrigen)} desde{" "}
+                    {referenceScenario.origen} hacia {referenceScenario.destino}.
+                </p>
             </div>
           </div>
         </section>

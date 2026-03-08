@@ -10,7 +10,7 @@ export default function RemesasSimulatorPage() {
     <SimulatorPanelRemesas 
       scenario="remesa-enviar"
       onBack={() => router.push("/escenarios")}
-      onViewResults={() => router.push("/resultados")}
+      onViewResults={(query = "") => router.push(`/resultados/remesas${query}`)}
     />
   )
 }

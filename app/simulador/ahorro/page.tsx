@@ -10,7 +10,7 @@ export default function AhorroSimulatorPage() {
     <SimulatorPanelAhorro
       scenario="ahorro"
       onBack={() => router.push("/escenarios")}
-      onViewResults={() => router.push("/resultados")}
+      onViewResults={() => router.push("/resultados/ahorro")}
     />
   )
 }
