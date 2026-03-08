@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, Play, Wallet, Globe, Server, HardDrive, Cpu, CheckCircle, ArrowRight, Lightbulb, Zap, Shield, TrendingUp, Circle } from "lucide-react"
+import { ArrowLeft, Play, Wallet, Globe, ArrowRightLeft, Network, Coins, CheckCircle2, ArrowRight, Lightbulb, Zap, Shield, TrendingUp } from "lucide-react"
 import { useState } from "react"
 
 interface SimulatorPanelProps {
@@ -12,29 +12,66 @@ interface SimulatorPanelProps {
   onViewResults: () => void
 }
 
-const montoOptions = ["$100", "$500", "$1,000", "$5,000"]
+const montoOptions = ["$100", "$300", "$500", "$1,000"]
 const origenOptions = ["Estados Unidos", "Canada", "Espana"]
 const destinoOptions = ["Mexico", "Guatemala", "Colombia"]
-const frecuenciaOptions = ["Unica vez", "Mensual", "Semanal", "Quincenal"]
-const metodoOptions = ["Banco", "Remesadora", "Bitcoin"]
+const frecuenciaOptions = ["Unica vez", "Semanal", "Quincenal", "Mensual"]
+const metodoOptions = ["Bitcoin", "Remesadora", "Banco"]
 const anosOptions = ["1 ano", "3 anos", "5 anos", "10 anos"]
 
 const transactionSteps = [
-  { id: "wallet", label: "Wallet", icon: Wallet, description: "Una wallet permite enviar y recibir Bitcoin.", color: "#3b82f6" },
-  { id: "red", label: "Red", icon: Globe, description: "La transacción se propaga a través de la red.", color: "#8b5cf6" },
-  { id: "mempool", label: "Mempool", icon: Server, description: "Aquí esperan las transacciones pendientes.", color: "#06b6d4" },
-  { id: "mineria", label: "Minería", icon: Cpu, description: "Los mineros agrupan transacciones en un bloque.", color: "#f59e0b" },
-  { id: "bloque", label: "Bloque", icon: HardDrive, description: "Tu transacción fue incluida en un nuevo bloque.", color: "#22c55e" },
-  { id: "confirmacion", label: "Confirmación", icon: CheckCircle, description: "Cada confirmación aumenta la seguridad de la transacción.", color: "#10b981" },
+  {
+    id: "origen",
+    label: "Origen",
+    icon: Wallet,
+    color: "#3b82f6",
+    description: "El remitente inicia la remesa desde el país de origen y define el monto a enviar."
+  },
+  {
+    id: "conversion",
+    label: "Conversión",
+    icon: ArrowRightLeft,
+    color: "#8b5cf6",
+    description: "Se calcula el valor de envío, comisiones estimadas y la conversión necesaria para la operación."
+  },
+  {
+    id: "red",
+    label: "Red",
+    icon: Network,
+    color: "#06b6d4",
+    description: "La remesa entra al sistema de procesamiento o red elegida para ser transmitida."
+  },
+  {
+    id: "validacion",
+    label: "Validación",
+    icon: Shield,
+    color: "#f59e0b",
+    description: "La operación se valida para confirmar que los datos, monto y ruta del envío sean correctos."
+  },
+  {
+    id: "liquidacion",
+    label: "Liquidación",
+    icon: Coins,
+    color: "#22c55e",
+    description: "El sistema consolida el envío y prepara la entrega del monto correspondiente al destinatario."
+  },
+  {
+    id: "recepcion",
+    label: "Recepción",
+    icon: CheckCircle2,
+    color: "#10b981",
+    description: "La persona destinataria recibe finalmente la remesa en el país de destino."
+  }
 ]
 
 export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: SimulatorPanelProps) {
   const [selectedMonto, setSelectedMonto] = useState("$500")
+  const [selectedMetodo, setSelectedMetodo] = useState("Bitcoin")
+  const [selectedFrecuencia, setSelectedFrecuencia] = useState("Mensual")
   const [selectedOrigen, setSelectedOrigen] = useState("Estados Unidos")
   const [selectedDestino, setSelectedDestino] = useState("Mexico")
-  const [selectedFrecuencia, setSelectedFrecuencia] = useState("Mensual")
-  const [selectedMetodo, setSelectedMetodo] = useState("Bitcoin")
-  const [selectedAnos, setSelectedAnos] = useState("5 anos")
+  const [selectedAnos, setSelectedAnos] = useState("5 años")
+  
   const [educativeMode, setEducativeMode] = useState(true)
   const [isSimulating, setIsSimulating] = useState(false)
   const [simulationFinished, setSimulationFinished] = useState(false)
@@ -54,17 +91,26 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
   }
 
   const getMontoNumber = (monto: string) => parseInt(monto.replace(/[^\d]/g, ''))
-  const estimatedFee = Math.max(2.5, getMontoNumber(selectedMonto) * 0.005)
+  const estimatedFee =
+    selectedMetodo === "Bitcoin"
+        ? Math.max(2.5, getMontoNumber(selectedMonto) * 0.005)
+        : selectedMetodo === "Remesadora"
+            ? Math.max(6, getMontoNumber(selectedMonto) * 0.035)
+            : Math.max(8, getMontoNumber(selectedMonto) * 0.045)
   const estimatedReceived = getMontoNumber(selectedMonto) - estimatedFee
-  const estimatedTime = selectedMetodo === "Bitcoin" ? "10-30 min" : "1-2 dias"
+  const estimatedTime = selectedMetodo === "Bitcoin" 
+  ? "10-30 min"
+  : selectedMetodo === "Remesadora" 
+  ? "Minutos a horas"
+  : "1-2 dias habiles"
 
   const getCurrentStepDescription = () => {
     if (simulationFinished) {
-      return "La simulación terminó correctamente. Ya puedes revisar el flujo completo o abrir el panel de resultados."
+      return "La simulación de la remesa terminó correctamente. Ya puedes revisar el flujo completo o abrir el panel de resultados."
     }
 
     const step = transactionSteps.find(s => s.id === activeStep)
-    return step ? step.description : "Haz clic en 'Ejecutar simulación' para ver el flujo de transacción."
+    return step ? step.description : "Haz clic en 'Ejecutar simulación' para ver el recorrido completo de tu remesa."
   }
 
   const handleRunSimulation = () => {
@@ -171,7 +217,7 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
             />
           </div>
           <span className="text-2xl font-bold gradient-text-animated">
-            Simulador
+            Remesas internacionales
           </span>
         </div>
         <div className="flex items-center gap-3 bg-[#1e293b]/60 border border-[#334155]/50 rounded-xl px-4 py-2.5 hover:border-[#3b82f6]/30 transition-colors">
@@ -208,7 +254,7 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-white">Configura tu simulación</h2>
-                <p className="text-xs text-[#64748b]">Define los parámetros de tu transacción</p>
+                <p className="text-xs text-[#64748b]">Define los datos del envío internacional</p>
               </div>
             </div>
             
@@ -297,7 +343,7 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
                   <div className="w-8 h-8 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20 flex items-center justify-center">
                     <TrendingUp className="w-4 h-4 text-[#f59e0b]" />
                   </div>
-                  <label className="text-sm font-semibold text-[#f8fafc]">Frecuencia de envío</label>
+                  <label className="text-sm font-semibold text-[#f8fafc]">Frecuencia de remesa</label>
                 </div>
                 <div className="flex flex-wrap gap-2.5">
                   {frecuenciaOptions.map((option) => (
@@ -323,7 +369,7 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
                   <div className="w-8 h-8 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20 flex items-center justify-center">
                     <Shield className="w-4 h-4 text-[#f59e0b]" />
                   </div>
-                  <label className="text-sm font-semibold text-[#f8fafc]">Método de transferencia</label>
+                  <label className="text-sm font-semibold text-[#f8fafc]">Método de envío</label>
                 </div>
                 <div className="flex flex-wrap gap-2.5">
                   {metodoOptions.map((option) => (
@@ -406,7 +452,7 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
               </div>
 
               <div>
-                <h2 className="text-xl font-semibold text-white">Ruta de transferencia</h2>
+                <h2 className="text-xl font-semibold text-white">Viaje de la transferencia</h2>
                 <p className="text-xs text-[#64748b]">Visualiza el flujo de tu transacción</p>
               </div>
             </div>
@@ -465,8 +511,8 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
                 <span className="text-lg font-bold text-[#22c55e]">3</span>
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-white">Viaje de la transacción</h2>
-                <p className="text-xs text-[#64748b]">Blockchain: Wallet → Red → Mempool → Minería → Bloque → Confirmación</p>
+                <h2 className="text-xl font-semibold text-white">Viaje de la remesa</h2>
+                <p className="text-xs text-[#64748b]">Sigue el recorrido del dinero desde el origen hasta la recepción final</p>
               </div>
             </div>
 
@@ -598,8 +644,8 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
                           {isSimulating
                             ? getCurrentStepDescription()
                             : simulationFinished
-                              ? "La simulación ha finalizado. Puedes revisar el recorrido completo o abrir el panel de resultados detallados."
-                              : "Los parámetros que seleccionas determinan cómo se procesará tu transacción. Bitcoin ofrece comisiones más bajas pero mayor volatilidad de precio."}
+                              ? "La simulación de la remesa ha finalizado. Puedes revisar el recorrido completo o abrir el panel de resultados detallados."
+                              : "Los parámetros que seleccionas determinan cómo se enviará tu remesa, cuánto tardará en llegar y cuánto recibirá finalmente la otra persona."}
                         </p>
                       </div>
                     </div>
@@ -616,13 +662,13 @@ export function SimulatorPanelRemesas({ scenario, onBack, onViewResults }: Simul
                 <TrendingUp className="w-5 h-5 text-[#f59e0b]" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-white">Resultados simulados</h2>
+                <h2 className="text-xl font-semibold text-white">Resumen del envío</h2>
                 <p className={`text-xs ${isSimulating ? 'text-[#3b82f6]' : simulationFinished ? 'text-[#22c55e]' : 'text-[#64748b]'}`}>
                   {isSimulating
                     ? `Etapa: ${activeStep ? transactionSteps.find(s => s.id === activeStep)?.label : 'Preparando...'}`
                     : simulationFinished
                       ? 'Simulación completada'
-                      : 'Haz clic en ejecutar para ver los resultados'}
+                      : 'Haz clic en ejecutar para ver el resumen del envío'}
                 </p>
               </div>
             </div>
