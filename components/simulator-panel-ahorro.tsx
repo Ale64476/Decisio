@@ -13,11 +13,11 @@ interface SimulatorPanelProps {
 }
 
 const montoOptions = ["$100", "$500", "$1,000", "$5,000"]
-const origenOptions = ["Estados Unidos", "Canada", "Espana"]
 const destinoOptions = ["Mexico", "Guatemala", "Colombia"]
 const frecuenciaOptions = ["Unica vez", "Mensual", "Semanal", "Quincenal"]
-const metodoOptions = ["Banco", "Remesadora", "Bitcoin"]
-const anosOptions = ["1 ano", "3 anos", "5 anos", "10 anos"]
+const metodoOptions = ["En efectivo", "Cuenta de ahorro", "Bitcoin"]
+const yearsOptions = ["1 año", "3 años", "5 años", "10 años"]
+const interestOptions = ["1%","3%","5%","10%"]
 
 const transactionSteps = [
   { id: "wallet", label: "Wallet", icon: Wallet, description: "Una wallet permite enviar y recibir Bitcoin.", color: "#3b82f6" },
@@ -30,11 +30,10 @@ const transactionSteps = [
 
 export function SimulatorPanelAhorro({ scenario, onBack, onViewResults }: SimulatorPanelProps) {
   const [selectedMonto, setSelectedMonto] = useState("$500")
-  const [selectedOrigen, setSelectedOrigen] = useState("Estados Unidos")
-  const [selectedDestino, setSelectedDestino] = useState("Mexico")
   const [selectedFrecuencia, setSelectedFrecuencia] = useState("Mensual")
   const [selectedMetodo, setSelectedMetodo] = useState("Bitcoin")
-  const [selectedAnos, setSelectedAnos] = useState("5 anos")
+  const [selectedAnos, setSelectedAnos] = useState("5 años")
+  const [selectedInterest, setSelectedInterest] = useState("3%")
   const [educativeMode, setEducativeMode] = useState(true)
   const [isSimulating, setIsSimulating] = useState(false)
   const [simulationFinished, setSimulationFinished] = useState(false)
@@ -219,7 +218,7 @@ export function SimulatorPanelAhorro({ scenario, onBack, onViewResults }: Simula
                   <div className="w-8 h-8 rounded-lg bg-[#3b82f6]/10 border border-[#3b82f6]/20 flex items-center justify-center">
                     <span className="text-sm font-bold text-[#3b82f6]">$</span>
                   </div>
-                  <label className="text-sm font-semibold text-[#f8fafc]">Monto a ahorrar</label>
+                  <label className="text-sm font-semibold text-[#f8fafc]">Monto a ahorrar (MXN)</label>
                 </div>
                 <div className="flex flex-wrap gap-2.5">
                   {montoOptions.map((option) => (
@@ -239,57 +238,7 @@ export function SimulatorPanelAhorro({ scenario, onBack, onViewResults }: Simula
                 </div>
               </div>
 
-              {/* Origen Section */}
-              <div className="space-y-4 pt-2 border-t border-[#334155]/30">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#3b82f6]/10 border border-[#3b82f6]/20 flex items-center justify-center">
-                    <Globe className="w-4 h-4 text-[#3b82f6]" />
-                  </div>
-                  <label className="text-sm font-semibold text-[#f8fafc]">País de origen</label>
-                </div>
-                <div className="flex flex-wrap gap-2.5">
-                  {origenOptions.map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => setSelectedOrigen(option)}
-                      disabled={isSimulating}
-                      className={`px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${
-                        selectedOrigen === option
-                          ? 'bg-[#3b82f6] text-white shadow-lg shadow-[#3b82f6]/30 scale-105'
-                          : 'bg-[#0f172a]/60 border border-[#334155]/50 text-[#94a3b8] hover:bg-[#3b82f6]/15 hover:border-[#3b82f6]/40 hover:text-white hover:shadow-md'
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Destino Section */}
-              <div className="space-y-4 pt-2 border-t border-[#334155]/30">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#8b5cf6]/10 border border-[#8b5cf6]/20 flex items-center justify-center">
-                    <Zap className="w-4 h-4 text-[#8b5cf6]" />
-                  </div>
-                  <label className="text-sm font-semibold text-[#f8fafc]">País de destino</label>
-                </div>
-                <div className="flex flex-wrap gap-2.5">
-                  {destinoOptions.map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => setSelectedDestino(option)}
-                      disabled={isSimulating}
-                      className={`px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${
-                        selectedDestino === option
-                          ? 'bg-[#8b5cf6] text-white shadow-lg shadow-[#8b5cf6]/30 scale-105'
-                          : 'bg-[#0f172a]/60 border border-[#334155]/50 text-[#94a3b8] hover:bg-[#8b5cf6]/15 hover:border-[#8b5cf6]/40 hover:text-white hover:shadow-md'
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              
 
               {/* Frecuencia Section */}
               <div className="space-y-4 pt-2 border-t border-[#334155]/30">
@@ -323,7 +272,7 @@ export function SimulatorPanelAhorro({ scenario, onBack, onViewResults }: Simula
                   <div className="w-8 h-8 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20 flex items-center justify-center">
                     <Shield className="w-4 h-4 text-[#f59e0b]" />
                   </div>
-                  <label className="text-sm font-semibold text-[#f8fafc]">Método de transferencia</label>
+                  <label className="text-sm font-semibold text-[#f8fafc]">Método de ahorro</label>
                 </div>
                 <div className="flex flex-wrap gap-2.5">
                   {metodoOptions.map((option) => (
@@ -345,6 +294,36 @@ export function SimulatorPanelAhorro({ scenario, onBack, onViewResults }: Simula
                 </div>
               </div>
 
+             {selectedMetodo === "Cuenta de ahorro" && (
+              <div className="space-y-4 pt-2 border-t border-[#334155]/30">
+               <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-[#22c55e]/10 border border-[#22c55e]/20 flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 text-[#22c55e]" />
+                </div>
+               <label className="text-sm font-semibold text-[#f8fafc]">
+               Tasa de interés compuesto anual
+               </label>
+                </div>
+                <div className="flex flex-wrap gap-2.5">
+                  {interestOptions.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => setSelectedInterest(option)}
+                      disabled={isSimulating}
+                      className={`px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${
+                        selectedInterest === option
+                          ? 'bg-[#22c55e] text-white shadow-lg shadow-[#22c55e]/30 scale-105'
+                          : 'bg-[#0f172a]/60 border border-[#334155]/50 text-[#94a3b8] hover:bg-[#22c55e]/15 hover:border-[#22c55e]/40 hover:text-white hover:shadow-md'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+
+              </div>
+              )} 
+
               {/* Periodo Section */}
               <div className="space-y-4 pt-2 border-t border-[#334155]/30">
                 <div className="flex items-center gap-2">
@@ -354,7 +333,7 @@ export function SimulatorPanelAhorro({ scenario, onBack, onViewResults }: Simula
                   <label className="text-sm font-semibold text-[#f8fafc]">Período de comparación</label>
                 </div>
                 <div className="flex flex-wrap gap-2.5">
-                  {anosOptions.map((option) => (
+                  {yearsOptions.map((option) => (
                     <button
                       key={option}
                       onClick={() => setSelectedAnos(option)}
@@ -398,74 +377,15 @@ export function SimulatorPanelAhorro({ scenario, onBack, onViewResults }: Simula
 
         {/* RIGHT COLUMN - Simulation Panel */}
         <div className="space-y-6 flex flex-col">
-          {/* Transfer Route */}
-          <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl p-8 shadow-lg shadow-[#1e293b]/50">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8b5cf6]/20 to-[#8b5cf6]/5 border border-[#8b5cf6]/20 flex items-center justify-center">
-                <span className="text-lg font-bold text-[#8b5cf6]">2</span>
-              </div>
-
-              <div>
-                <h2 className="text-xl font-semibold text-white">Ruta de transferencia</h2>
-                <p className="text-xs text-[#64748b]">Visualiza el flujo de tu transacción</p>
-              </div>
-            </div>
-
-            {/* Transfer Route Visualization */}
-            <div className="bg-gradient-to-b from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-8 rounded-xl mb-8">
-              <div className="flex items-center justify-between">
-                {/* Origin */}
-                <div className="text-center flex-1">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#3b82f6]/25 to-[#3b82f6]/5 border-2 border-[#3b82f6]/50 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[#3b82f6]/20">
-                    <span className="text-3xl">{getCountryFlag(selectedOrigen)}</span>
-                  </div>
-                  <p className="text-xs font-bold text-white mb-1">{selectedOrigen}</p>
-                  <p className="text-xs text-[#64748b] font-medium">Origen</p>
-                </div>
-
-                {/* Connection */}
-                <div className="flex-1 mx-6 flex items-center justify-center">
-                  <div className="relative w-full h-12 flex items-center justify-center">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full h-1 bg-gradient-to-r from-[#3b82f6] via-[#8b5cf6] to-[#22c55e] rounded-full shadow-lg shadow-[#8b5cf6]/20" />
-                    </div>
-                    <div className="relative bg-[#0f172a] border-2 border-[#8b5cf6] rounded-full p-2.5 shadow-lg shadow-[#8b5cf6]/30">
-                      <ArrowRight className="w-5 h-5 text-[#8b5cf6]" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Destination */}
-                <div className="text-center flex-1">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#22c55e]/25 to-[#22c55e]/5 border-2 border-[#22c55e]/50 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[#22c55e]/20">
-                    <span className="text-3xl">{getCountryFlag(selectedDestino)}</span>
-                  </div>
-                  <p className="text-xs font-bold text-white mb-1">{selectedDestino}</p>
-                  <p className="text-xs text-[#64748b] font-medium">Destino</p>
-                </div>
-              </div>
-
-              {/* Method Badge */}
-              <div className="mt-6 flex items-center justify-center">
-                <div className={`px-6 py-2.5 rounded-lg font-semibold text-white text-xs shadow-lg ${
-                  selectedMetodo === "Bitcoin"
-                    ? 'bg-gradient-to-r from-[#f59e0b] to-[#f97316] shadow-[#f59e0b]/30'
-                    : 'bg-[#3b82f6] shadow-[#3b82f6]/30'
-                }`}>
-                  {selectedMetodo}
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Bitcoin Transaction Journey - Horizontal Process */}
           <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl p-8 shadow-lg shadow-[#1e293b]/50">
             <div className="flex items-center gap-3 mb-8">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#22c55e]/20 to-[#22c55e]/5 border border-[#22c55e]/20 flex items-center justify-center">
-                <span className="text-lg font-bold text-[#22c55e]">3</span>
+                <span className="text-lg font-bold text-[#22c55e]">2</span>
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-white">Viaje de la transacción</h2>
+                <h2 className="text-xl font-semibold text-white">Proceso de ahorro</h2>
                 <p className="text-xs text-[#64748b]">Blockchain: Wallet → Red → Mempool → Minería → Bloque → Confirmación</p>
               </div>
             </div>
