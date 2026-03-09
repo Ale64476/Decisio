@@ -246,62 +246,10 @@ export function ResultsDashboardRemesas({
   )
 
   // Para la gráfica de comisiones acumuladas
-  const feesChartData = [
-    {
-      year: 0,
-      Banco: 0,
-      Remesadora: 0,
-      Bitcoin: 0,
-    },
-    ...Array.from({ length: projectionYears }, (_, i) => {
-      const year = i + 1
-
-      const projections = comparisonRows.map((row) =>
-        buildProjectionForMethod(row, year)
-      )
-
-      const banco = projections.find((p) => p.metodo === "Banco")
-      const remesadora = projections.find((p) => p.metodo === "Remesadora")
-      const bitcoin = projections.find((p) => p.metodo === "Bitcoin")
-
-      return {
-        year,
-        Banco: (banco?.totalFees ?? 0) * referenceScenario.tipoCambioReferencia,
-        Remesadora: (remesadora?.totalFees ?? 0) * referenceScenario.tipoCambioReferencia,
-        Bitcoin: (bitcoin?.totalFees ?? 0) * referenceScenario.tipoCambioReferencia,
-      }
-    }),
-  ]
-
-  const renderEndDot =
-    (color: string) =>
-    (props: any) => {
-      const { cx, cy, index, value } = props
-      if (cx == null || cy == null || index == null || value == null) return null
-
-      const isLastPoint = index === feesChartData.length - 1
-
-      if (!isLastPoint) {
-        return <circle key={`dot-${color}-${index}`} cx={cx} cy={cy} r={3} fill={color} />
-      }
-
-      return (
-        <g key={`dot-label-${color}-${index}`}>
-          <circle cx={cx} cy={cy} r={5} fill={color} />
-          <text
-            x={cx + 10}
-            y={cy}
-            fill={color}
-            fontSize={12}
-            fontWeight={700}
-            textAnchor="start"
-            dominantBaseline="middle"
-          >
-            {formatMoney(value, "MXN")}
-          </text>
-        </g>
-      )
-    }
+  const feesImpactData = projectionRows.map((row) => ({
+    metodo: row.metodo,
+    perdidoMXN: row.totalFees * referenceScenario.tipoCambioReferencia,
+  }))
 
   return (
     <div className="min-h-screen bg-[#0f172a] relative overflow-hidden">
@@ -622,82 +570,90 @@ export function ResultsDashboardRemesas({
                 </p>
             </div>
 
-            {/* Gráfica de líneas para comisiones acumuladas */}
-            <div className="mt-8 bg-[#0f172a]/40 border border-[#334155]/30 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-2">
-                Comisiones acumuladas pagadas
-              </h3>
-              <p className="text-sm text-[#94a3b8] mb-4">
-                Comparación del costo total acumulado por método durante el horizonte seleccionado.
-              </p>
+            {/* Gráfica horizontal de pérdidas acumuladas */}
+              <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl p-6 shadow-lg shadow-[#1e293b]/50">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#ef4444]/20 to-[#ef4444]/5 border border-[#ef4444]/20 flex items-center justify-center">
+                    <BadgeDollarSign className="w-5 h-5 text-[#ef4444]" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">Dinero perdido en comisiones</h3>
+                    <p className="text-sm text-[#94a3b8]">
+                      Comparación del costo total estimado por método al cierre del horizonte seleccionado.
+                    </p>
+                  </div>
+                </div>
 
-              <div className="h-[320px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={feesChartData} margin={{ top: 20, right: 110, left: 10, bottom: 10 }}>
-                    <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="year"
-                      stroke="#94a3b8"
-                      label={{ value: "Años", position: "insideBottom", offset: -5 }}
-                    />
-                    <YAxis
-                      stroke="#94a3b8"
-                      tickFormatter={(value) => {
-                        if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
-                        if (value >= 1000) return `${(value / 1000).toFixed(0)}k`
-                        return String(value)
-                      }}
-                    />
-                    <Tooltip
-                      formatter={(value: number) =>
-                        new Intl.NumberFormat("es-MX", {
-                          style: "currency",
-                          currency: "MXN",
-                          maximumFractionDigits: 0,
-                        }).format(value)
-                      }
-                    />
-                    <Legend />
+                <div className="h-[280px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={feesImpactData}
+                      layout="vertical"
+                      margin={{ top: 10, right: 30, left: 20, bottom: 10 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
+                      <XAxis
+                        type="number"
+                        stroke="#94a3b8"
+                        tickFormatter={(value) => {
+                          if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
+                          if (value >= 1000) return `${(value / 1000).toFixed(0)}k`
+                          return String(value)
+                        }}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="metodo"
+                        stroke="#94a3b8"
+                        width={100}
+                      />
+                      <Tooltip
+                        cursor={{ fill: "rgba(148, 163, 184, 0.08)" }}
+                        contentStyle={{
+                          backgroundColor: "#0f172a",
+                          border: "1px solid #334155",
+                          borderRadius: "12px",
+                          color: "#fff",
+                        }}
+                        formatter={(value: number) => [formatMoney(value, "MXN"), "Pérdida estimada"]}
+                      />
+                      <Bar
+                        dataKey="perdidoMXN"
+                        radius={[0, 8, 8, 0]}
+                        animationDuration={500}
+                        animationEasing="ease-out"
+                      >
+                        <LabelList
+                          dataKey="perdidoMXN"
+                          position="right"
+                          formatter={(value: number) =>
+                            new Intl.NumberFormat("es-MX", {
+                              style: "currency",
+                              currency: "MXN",
+                              maximumFractionDigits: 0,
+                            }).format(value)
+                          }
+                        />
+                        {feesImpactData.map((entry, index) => {
+                          const fill =
+                            entry.metodo === "Banco"
+                              ? "#ef4444"
+                              : entry.metodo === "Remesadora"
+                                ? "#f59e0b"
+                                : "#f7931a"
 
-                    <Line
-                      type="monotone"
-                      dataKey="Banco"
-                      stroke="#ef4444"
-                      strokeWidth={3}
-                      dot={renderEndDot("#ef4444") as any}
-                      activeDot={{ r: 5 }}
-                      animationDuration={500}
-                      animationEasing="ease-out"
-                    />
+                          return <Cell key={`fees-cell-${index}`} fill={fill} />
+                        })}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
 
-                    <Line
-                      type="monotone"
-                      dataKey="Remesadora"
-                      stroke="#f59e0b"
-                      strokeWidth={3}
-                      dot={renderEndDot("#f59e0b") as any}
-                      activeDot={{ r: 5 }}
-                      animationDuration={500}
-                      animationEasing="ease-out"
-                    />
-
-                    <Line
-                      type="monotone"
-                      dataKey="Bitcoin"
-                      stroke="#22c55e"
-                      strokeWidth={4}
-                      dot={renderEndDot("#22c55e") as any}
-                      activeDot={{ r: 6 }}
-                      animationDuration={500}
-                      animationEasing="ease-out"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                <p className="text-xs text-[#94a3b8] mt-4 leading-relaxed">
+                  A mayor barra, mayor dinero perdido en comisiones durante{" "}
+                  {projectionYears} {projectionYears === 1 ? "año" : "años"}.
+                </p>
               </div>
-              <p className="text-xs text-[#94a3b8] mt-4 leading-relaxed">
-                Esta gráfica muestra cómo crece con el tiempo el dinero perdido en comisiones por método a lo largo de {projectionYears} {projectionYears === 1 ? "año" : "años"}.
-              </p>
-            </div>
                       
                       {/* Proyección acumulada con slider */}
 
