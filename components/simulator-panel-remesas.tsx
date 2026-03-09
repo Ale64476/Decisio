@@ -173,33 +173,41 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
   }
 
   const handleRunSimulation = () => {
-    setIsSimulating(true)
-    setSimulationFinished(false)
-    setCompletedSteps([])
+  if (!educativeMode) {
+    setIsSimulating(false)
+    setSimulationFinished(true)
     setActiveStep(null)
-
-    let stepIndex = 0
-    const stepIds = transactionSteps.map((s) => s.id)
-
-    const simulateNextStep = () => {
-      if (stepIndex < stepIds.length) {
-        const currentStep = stepIds[stepIndex]
-        setActiveStep(currentStep)
-
-        setTimeout(() => {
-          setCompletedSteps((prev) => [...prev, currentStep])
-          stepIndex++
-          simulateNextStep()
-        }, educativeMode ? 2600 : 1400)
-      } else {
-        setIsSimulating(false)
-        setSimulationFinished(true)
-        setActiveStep(null)
-      }
-    }
-
-    simulateNextStep()
+    setCompletedSteps(transactionSteps.map((step) => step.id))
+    return
   }
+
+  setIsSimulating(true)
+  setSimulationFinished(false)
+  setCompletedSteps([])
+  setActiveStep(null)
+
+  let stepIndex = 0
+  const stepIds = transactionSteps.map((s) => s.id)
+
+  const simulateNextStep = () => {
+    if (stepIndex < stepIds.length) {
+      const currentStep = stepIds[stepIndex]
+      setActiveStep(currentStep)
+
+      setTimeout(() => {
+        setCompletedSteps((prev) => [...prev, currentStep])
+        stepIndex++
+        simulateNextStep()
+      }, 2600)
+    } else {
+      setIsSimulating(false)
+      setSimulationFinished(true)
+      setActiveStep(null)
+    }
+  }
+
+  simulateNextStep()
+}
 
   const handleViewResults = () => {
     const montoNumerico = getMontoNumber(selectedMonto)
@@ -232,6 +240,34 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
     : isSimulating
       ? ((completedSteps.length + (activeStep ? 1 : 0)) / transactionSteps.length) * 100
       : 0
+
+
+  const summaryMetrics = [
+    {
+      label: "Monto base",
+      value: `${selectedMonto} ${getCurrencyCode(selectedOrigen)}`,
+      accent: "text-white",
+      helper: `Origen · ${selectedOrigen}`,
+    },
+    {
+      label: "Comisión estimada",
+      value: `${getCurrencyCode(selectedOrigen)} ${formatNumber(estimatedFee)}`,
+      accent: "text-[#f59e0b]",
+      helper: `${((estimatedFee / getMontoNumber(selectedMonto)) * 100).toFixed(2)}% del monto`,
+    },
+    {
+      label: "Equivalente estimado en MXN",
+      value: `MXN ${formatNumber(estimatedReceivedMXN)}`,
+      accent: "text-[#22c55e]",
+      helper: "Monto aproximado a recibir en México",
+    },
+    {
+      label: "Tiempo estimado",
+      value: estimatedTime,
+      accent: "text-[#3b82f6]",
+      helper: `Método: ${selectedMetodo}`,
+    },
+  ]
 
   const getStepNodeStyle = (color: string, state: string) => {
     if (state === "activo") {
@@ -455,67 +491,125 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
                 className="btn-shine w-full bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:opacity-90 text-white py-7 text-base font-semibold rounded-xl shadow-xl shadow-[#3b82f6]/30 transition-all hover:shadow-2xl hover:shadow-[#8b5cf6]/40 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 <Play className="mr-2.5 w-5 h-5" />
-                {isSimulating ? "Simulando..." : simulationFinished ? "Ejecutar de nuevo" : "Ejecutar simulación"}
+                {isSimulating
+                  ? educativeMode
+                    ? "Simulando..."
+                    : "Calculando..."
+                  : simulationFinished
+                    ? educativeMode
+                      ? "Ejecutar de nuevo"
+                      : "Calcular de nuevo"
+                    : educativeMode
+                      ? "Ejecutar simulación"
+                      : "Calcular resultado"}
               </Button>
-
-              {simulationFinished && (
-                <Button
-                  onClick={handleViewResults}  
-                  className="w-full bg-[#0f172a] border border-[#22c55e]/40 hover:bg-[#22c55e]/10 text-white py-7 text-base font-semibold rounded-xl transition-all"
-                >
-                  Ver resultados detallados
-                  <ArrowRight className="ml-2.5 w-5 h-5" />
-                </Button>
-              )}
             </div>
           </div>
         </div>
 
         <div className="space-y-6 flex flex-col">
-          <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl p-8 shadow-lg shadow-[#1e293b]/50">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8b5cf6]/20 to-[#8b5cf6]/5 border border-[#8b5cf6]/20 flex items-center justify-center">
-                <span className="text-lg font-bold text-[#8b5cf6]">2</span>
+          {simulationFinished && (
+            <div className="animate-[fadeInUp_0.45s_ease-out] bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#22c55e]/30 rounded-2xl p-6 shadow-lg shadow-[#1e293b]/50">
+              <div className="flex items-start justify-between gap-4 mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#22c55e]/20 to-[#22c55e]/5 border border-[#22c55e]/20 flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-[#22c55e]" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">Resumen del envío</h2>
+                    <p className="text-xs text-[#22c55e]">
+                      {educativeMode
+                        ? "Simulación completada · Resultado rápido del método seleccionado"
+                        : "Resultado calculado · Puedes revisar los detalles del envío"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="px-3 py-1 rounded-full border border-[#22c55e]/20 bg-[#22c55e]/10 text-[11px] font-semibold text-[#86efac]">
+                  {selectedMetodo}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-5">
+                {summaryMetrics.map((metric) => (
+                  <div
+                    key={metric.label}
+                    className="bg-gradient-to-br from-[#0f172a]/85 to-[#1e293b]/40 border border-[#334155]/30 p-4 rounded-xl"
+                  >
+                    <p className="text-[11px] font-semibold text-[#94a3b8] mb-2">{metric.label}</p>
+                    <p className={`text-lg font-bold mb-1 ${metric.accent}`}>{metric.value}</p>
+                    <p className="text-[11px] text-[#64748b] leading-relaxed">{metric.helper}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-gradient-to-r from-[#22c55e]/10 to-[#3b82f6]/10 border border-[#334155]/40 p-4 rounded-xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#22c55e]" />
+                  <p className="text-sm font-semibold text-white">Estado actual de la remesa</p>
+                </div>
+                <p className="text-sm text-[#cbd5e1] leading-relaxed">
+                  {educativeMode
+                    ? "Simulación finalizada. Ya puedes revisar el recorrido completo o abrir el panel de resultados detallados."
+                    : "El cálculo del envío terminó correctamente. Puedes abrir el panel de resultados detallados."}
+                </p>
+                <div className="mt-5">
+                  <Button
+                    onClick={handleViewResults}
+                    className="w-full bg-[#0f172a] border border-[#22c55e]/40 hover:bg-[#22c55e]/10 text-white py-6 text-sm font-semibold rounded-xl transition-all"
+                  >
+                    Ver resultados detallados
+                    <ArrowRight className="ml-2.5 w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl p-6 shadow-lg shadow-[#1e293b]/50">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#8b5cf6]/20 to-[#8b5cf6]/5 border border-[#8b5cf6]/20 flex items-center justify-center">
+                <span className="text-base font-bold text-[#8b5cf6]">2</span>
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-white">Ruta del envío</h2>
+                <h2 className="text-lg font-semibold text-white">Ruta del envío</h2>
                 <p className="text-xs text-[#64748b]">Tu remesa viaja desde el país de origen hasta México</p>
               </div>
             </div>
 
-            <div className="bg-gradient-to-b from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-8 rounded-xl mb-8">
-              <div className="flex items-center justify-between">
-                <div className="text-center flex-1">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#3b82f6]/25 to-[#3b82f6]/5 border-2 border-[#3b82f6]/50 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[#3b82f6]/20">
-                    <span className="text-3xl">{getCountryFlag(selectedOrigen)}</span>
+            <div className="bg-gradient-to-b from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-5 rounded-xl">
+              <div className="flex items-center justify-between gap-4">
+                <div className="text-center flex-1 min-w-0">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#3b82f6]/25 to-[#3b82f6]/5 border-2 border-[#3b82f6]/50 flex items-center justify-center mx-auto mb-2 shadow-lg shadow-[#3b82f6]/20">
+                    <span className="text-2xl">{getCountryFlag(selectedOrigen)}</span>
                   </div>
-                  <p className="text-xs font-bold text-white mb-1">{selectedOrigen}</p>
-                  <p className="text-xs text-[#64748b] font-medium">Origen · {getCurrencyCode(selectedOrigen)}</p>
+                  <p className="text-xs font-bold text-white mb-1 leading-tight">{selectedOrigen}</p>
+                  <p className="text-[11px] text-[#64748b] font-medium">Origen · {getCurrencyCode(selectedOrigen)}</p>
                 </div>
 
-                <div className="flex-1 mx-6 flex items-center justify-center">
-                  <div className="relative w-full h-12 flex items-center justify-center">
+                <div className="flex-1 mx-3 flex items-center justify-center">
+                  <div className="relative w-full h-10 flex items-center justify-center">
                     <div className="absolute inset-0 flex items-center">
-                      <div className="w-full h-1 bg-gradient-to-r from-[#3b82f6] via-[#8b5cf6] to-[#22c55e] rounded-full shadow-lg shadow-[#8b5cf6]/20" />
+                      <div className="w-full h-[3px] bg-gradient-to-r from-[#3b82f6] via-[#8b5cf6] to-[#22c55e] rounded-full shadow-lg shadow-[#8b5cf6]/20" />
                     </div>
-                    <div className="relative bg-[#0f172a] border-2 border-[#8b5cf6] rounded-full p-2.5 shadow-lg shadow-[#8b5cf6]/30">
-                      <ArrowRight className="w-5 h-5 text-[#8b5cf6]" />
+                    <div className="relative bg-[#0f172a] border-2 border-[#8b5cf6] rounded-full p-2 shadow-lg shadow-[#8b5cf6]/30">
+                      <ArrowRight className="w-4 h-4 text-[#8b5cf6]" />
                     </div>
                   </div>
                 </div>
 
-                <div className="text-center flex-1">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#22c55e]/25 to-[#22c55e]/5 border-2 border-[#22c55e]/50 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[#22c55e]/20">
-                    <span className="text-3xl">{getCountryFlag(selectedDestino)}</span>
+                <div className="text-center flex-1 min-w-0">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#22c55e]/25 to-[#22c55e]/5 border-2 border-[#22c55e]/50 flex items-center justify-center mx-auto mb-2 shadow-lg shadow-[#22c55e]/20">
+                    <span className="text-2xl">{getCountryFlag(selectedDestino)}</span>
                   </div>
-                  <p className="text-xs font-bold text-white mb-1">{selectedDestino}</p>
-                  <p className="text-xs text-[#64748b] font-medium">Destino · {getCurrencyCode(selectedDestino)}</p>
+                  <p className="text-xs font-bold text-white mb-1 leading-tight">{selectedDestino}</p>
+                  <p className="text-[11px] text-[#64748b] font-medium">Destino · {getCurrencyCode(selectedDestino)}</p>
                 </div>
               </div>
 
-              <div className="mt-6 flex items-center justify-center">
+              <div className="mt-4 flex items-center justify-center">
                 <div
-                  className={`px-6 py-2.5 rounded-lg font-semibold text-white text-xs shadow-lg ${
+                  className={`px-4 py-2 rounded-lg font-semibold text-white text-[11px] shadow-lg ${
                     selectedMetodo === "Bitcoin"
                       ? "bg-gradient-to-r from-[#f59e0b] to-[#f97316] shadow-[#f59e0b]/30"
                       : "bg-[#3b82f6] shadow-[#3b82f6]/30"
@@ -672,93 +766,8 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
             )}
           </div>
 
-          <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl p-8 shadow-lg shadow-[#1e293b]/50">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#f59e0b]/20 to-[#f59e0b]/5 border border-[#f59e0b]/20 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-[#f59e0b]" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-white">Resumen del envío</h2>
-                <p className={`text-xs ${isSimulating ? "text-[#3b82f6]" : simulationFinished ? "text-[#22c55e]" : "text-[#64748b]"}`}>
-                  {isSimulating
-                    ? `Etapa: ${activeStep ? transactionSteps.find((s) => s.id === activeStep)?.label : "Preparando..."}`
-                    : simulationFinished
-                      ? "Simulación completada"
-                      : "Haz clic en ejecutar para ver el resumen del envío"}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-              <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
-                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Monto base</p>
-                <p className="text-2xl font-bold text-white mb-1">
-                  {selectedMonto} {getCurrencyCode(selectedOrigen)}
-                </p>
-                <p className="text-xs text-[#64748b]">Valor original de la remesa desde {selectedOrigen}</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
-                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Método seleccionado</p>
-                <p className="text-2xl font-bold text-[#8b5cf6] mb-1">{selectedMetodo}</p>
-                <p className="text-xs text-[#64748b]">Comparación activa de costo y tiempo</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
-                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Comisión estimada</p>
-                <p className="text-2xl font-bold text-[#f59e0b]">{getCurrencyCode(selectedOrigen)} {formatNumber(estimatedFee)}</p>
-                <p className="text-xs text-[#64748b]">({((estimatedFee / getMontoNumber(selectedMonto)) * 100).toFixed(2)}%)</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
-                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Valor neto estimado</p>
-                <p className="text-2xl font-bold text-[#22c55e]">
-                  {getCurrencyCode(selectedOrigen)} {formatNumber(estimatedReceived)}
-                </p>
-                <p className="text-xs text-[#64748b]">Después de comisiones y antes de convertir a {getCurrencyCode(selectedDestino)}</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
-                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Equivalente estimado en MXN</p>
-                <p className="text-2xl font-bold text-[#22c55e]">MXN {formatNumber(estimatedReceivedMXN)}</p>
-                <p className="text-xs text-[#64748b]">Monto aproximado a recibir en México</p>
-              </div>
-
-              <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
-                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Tiempo estimado</p>
-                <p className="text-2xl font-bold text-[#3b82f6]">{estimatedTime}</p>
-                <p className="text-xs text-[#64748b]">Método: {selectedMetodo}</p>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-r from-[#3b82f6]/10 to-[#8b5cf6]/10 border border-[#3b82f6]/30 p-6 rounded-xl">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-3 h-3 rounded-full bg-[#3b82f6] animate-pulse" />
-                <p className="text-sm font-semibold text-white">Estado actual de la remesa</p>
-              </div>
-              <p className="text-sm text-[#cbd5e1]">
-                {isSimulating
-                  ? activeStep
-                    ? `En progreso: ${transactionSteps.find((s) => s.id === activeStep)?.label}`
-                    : "Iniciando simulación..."
-                  : simulationFinished
-                    ? "Simulación finalizada. El flujo completó todas las etapas educativas del envío."
-                    : "Esperando para ejecutar simulación"}
-              </p>
-
-              {(isSimulating || simulationFinished) && (
-                <div className="w-full h-2 bg-[#0f172a]/60 rounded-full mt-4 overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-[#3b82f6] to-[#22c55e] rounded-full transition-all duration-300"
-                    style={{ width: `${estimatedProgressPercent}%` }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </main>
     </div>
   )
 }
-

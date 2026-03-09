@@ -25,9 +25,6 @@ import {
   Tooltip,
   CartesianGrid,
   ResponsiveContainer,
-  Legend,
-  LineChart,
-  Line,
   Cell,
   LabelList,
 } from "recharts"
@@ -105,36 +102,6 @@ const getTransfersPerYear = (frecuencia: string) => {
   return 12
 }
 
-const timelineSteps = [
-  {
-    title: "Origen",
-    description:
-      "La remesa parte desde el país de origen y el valor base se expresa en la moneda local del remitente.",
-    icon: Wallet,
-    color: "#3b82f6",
-  },
-  {
-    title: "Red Bitcoin",
-    description:
-      "El valor se transmite digitalmente a través de la red Bitcoin para evitar el recorrido tradicional de múltiples intermediarios.",
-    icon: Network,
-    color: "#06b6d4",
-  },
-  {
-    title: "Validación",
-    description:
-      "La operación se verifica antes de confirmarse, lo que ayuda a dar seguridad al envío.",
-    icon: ShieldCheck,
-    color: "#f59e0b",
-  },
-  {
-    title: "Destino",
-    description:
-      "Una vez confirmada, la remesa puede recibirse en México y convertirse a pesos mexicanos.",
-    icon: PackageCheck,
-    color: "#22c55e",
-  },
-]
 
 const formatMoney = (value: number, currency: string) => {
   const locale = currency === "MXN" ? "es-MX" : "en-US"
@@ -158,6 +125,7 @@ export function ResultsDashboardRemesas({
   onNewSimulation,
 }: ResultsDashboardProps) {
   const [projectionYears, setProjectionYears] = useState(5)
+  const [chartViewMode, setChartViewMode] = useState<"comparativa" | "individual">("comparativa")
 
   const referenceScenario = {
     ...defaultReferenceScenario,
@@ -230,79 +198,46 @@ export function ResultsDashboardRemesas({
   const savedVsBankProjection =
     selectedProjection.totalReceivedMXN - bankProjection.totalReceivedMXN
 
+  
   // Datos para la gráfica de barras
 
-  const chartData = projectionRows.map((row) => ({
-    metodo: row.metodo,
-    valor: row.totalReceivedMXN,
-  }))
+type ChartBarItem = {
+  metodo: string
+  valor: number
+}
 
-  const maxProjectionRows = comparisonRows.map((row) =>
-    buildProjectionForMethod(row, 10)
-  )
+type FeesImpactItem = {
+  metodo: string
+  perdidoMXN: number
+}
 
-  const maxReceivedMXN = Math.max(
-    ...maxProjectionRows.map((row) => row.totalReceivedMXN)
-  )
+const chartData: ChartBarItem[] = projectionRows.map((row) => ({
+  metodo: row.metodo,
+  valor: row.totalReceivedMXN,
+}))
 
-  // Para la gráfica de comisiones acumuladas
-  const feesChartData = [
-    {
-      year: 0,
-      Banco: 0,
-      Remesadora: 0,
-      Bitcoin: 0,
-    },
-    ...Array.from({ length: projectionYears }, (_, i) => {
-      const year = i + 1
+const maxProjectionRows = comparisonRows.map((row) =>
+  buildProjectionForMethod(row, 10)
+)
 
-      const projections = comparisonRows.map((row) =>
-        buildProjectionForMethod(row, year)
-      )
+const maxReceivedMXN = Math.max(
+  ...maxProjectionRows.map((row) => row.totalReceivedMXN)
+)
 
-      const banco = projections.find((p) => p.metodo === "Banco")
-      const remesadora = projections.find((p) => p.metodo === "Remesadora")
-      const bitcoin = projections.find((p) => p.metodo === "Bitcoin")
+const feesImpactData: FeesImpactItem[] = projectionRows.map((row) => ({
+  metodo: row.metodo,
+  perdidoMXN: row.totalFees * referenceScenario.tipoCambioReferencia,
+}))
 
-      return {
-        year,
-        Banco: (banco?.totalFees ?? 0) * referenceScenario.tipoCambioReferencia,
-        Remesadora: (remesadora?.totalFees ?? 0) * referenceScenario.tipoCambioReferencia,
-        Bitcoin: (bitcoin?.totalFees ?? 0) * referenceScenario.tipoCambioReferencia,
-      }
-    }),
-  ]
+const visibleChartData: ChartBarItem[] =
+  chartViewMode === "comparativa"
+    ? chartData
+    : chartData.filter((item) => item.metodo === referenceScenario.metodoSeleccionado)
 
-  const renderEndDot =
-    (color: string) =>
-    (props: any) => {
-      const { cx, cy, index, value } = props
-      if (cx == null || cy == null || index == null || value == null) return null
-
-      const isLastPoint = index === feesChartData.length - 1
-
-      if (!isLastPoint) {
-        return <circle key={`dot-${color}-${index}`} cx={cx} cy={cy} r={3} fill={color} />
-      }
-
-      return (
-        <g key={`dot-label-${color}-${index}`}>
-          <circle cx={cx} cy={cy} r={5} fill={color} />
-          <text
-            x={cx + 10}
-            y={cy}
-            fill={color}
-            fontSize={12}
-            fontWeight={700}
-            textAnchor="start"
-            dominantBaseline="middle"
-          >
-            {formatMoney(value, "MXN")}
-          </text>
-        </g>
-      )
-    }
-
+const visibleFeesImpactData: FeesImpactItem[] =
+  chartViewMode === "comparativa"
+    ? feesImpactData
+    : feesImpactData.filter((item) => item.metodo === referenceScenario.metodoSeleccionado)
   return (
     <div className="min-h-screen bg-[#0f172a] relative overflow-hidden">
       <div className="fixed inset-0 grid-pattern pointer-events-none" />
@@ -463,132 +398,219 @@ export function ResultsDashboardRemesas({
           </div>
         </section>
 
-        <section className="grid xl:grid-cols-[1.3fr_0.7fr] gap-6">
-          <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl overflow-hidden">
-            <div className="p-6 border-b border-[#334155]/30">
-              <h3 className="text-xl font-semibold text-white">Comparación del envío actual</h3>
-              <p className="text-sm text-[#64748b] mt-1">
-                Costo, tiempo y recepción estimada por método para una sola remesa.
-              </p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
+        <section className="grid xl:grid-cols-[1.3fr_0.7fr] gap-6 items-start">
+          <div className="space-y-6">
+            <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl overflow-hidden">
+              <div className="p-6 border-b border-[#334155]/30">
+                <h3 className="text-xl font-semibold text-white">Comparación del envío actual</h3>
+                <p className="text-sm text-[#64748b] mt-1">
+                  Costo, tiempo y recepción estimada por método para una sola remesa.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
                     <tr className="bg-[#0f172a]/40">
-                    <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Método</th>
-                    <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Comisión</th>
-                    <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Tiempo</th>
-                    <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Recibido estimado</th>
-                    <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Valor real</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Método</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Comisión</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Tiempo</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Recibido estimado</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Valor real</th>
                     </tr>
-                </thead>
-                <tbody>
-                  {comparisonRows.map((row) => (
-                    <tr
-                    key={row.metodo}
-                    className={`border-t transition-colors ${
-                        row.metodo === referenceScenario.metodoSeleccionado
-                        ? "bg-[#f7931a]/10 border-[#f7931a]/30"
-                        : "border-[#334155]/30 hover:bg-[#0f172a]/20"
-                    }`}
-                    >
-                      <td className="py-5 px-6">
-                        <span
-                        className={`font-semibold ${
-                            row.metodo === referenceScenario.metodoSeleccionado ? "text-[#f7931a]" : "text-white"
+                  </thead>
+                  <tbody>
+                    {comparisonRows.map((row) => (
+                      <tr
+                        key={row.metodo}
+                        className={`border-t transition-colors ${
+                          row.metodo === referenceScenario.metodoSeleccionado
+                            ? "bg-[#f7931a]/10 border-[#f7931a]/30"
+                            : "border-[#334155]/30 hover:bg-[#0f172a]/20"
                         }`}
-                        >
-                        {row.metodo}
-                        </span>
-                      </td>
-                      <td className="py-5 px-6 text-white font-medium">
-                        {formatMoney(row.comision, row.monedaOrigen)}
-                      </td>
-                      <td className="py-5 px-6 text-[#94a3b8]">{row.tiempo}</td>
-                      <td className="py-5 px-6 text-white font-medium">
-                        {formatMoney(row.netoOrigen, row.monedaOrigen)}
-                      </td>
-                      <td className="py-5 px-6">
-                        <span
-                        className={`font-semibold ${
-                            row.metodo === referenceScenario.metodoSeleccionado ? "text-[#f7931a]" : "text-white"
-                        }`}
-                        >
-                        {formatMoney(row.recibidoMXN, referenceScenario.monedaDestino)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-[#334155]/40 rounded-2xl p-6 shadow-xl shadow-black/10">
-            <div className="flex items-start justify-between gap-4 mb-5">
-                <div>
-                    <h3 className="text-xl font-semibold text-white">Proyección acumulada</h3>
-                    <p className="text-sm text-[#94a3b8] mt-1">
-                        Impacto estimado de una remesa {referenceScenario.frecuencia.toLowerCase()} de{" "}
-                        {formatMoney(referenceScenario.montoBase, referenceScenario.monedaOrigen)} durante{" "}
-                        {projectionYears} {projectionYears === 1 ? "año" : "años"}.
-                    </p>
-                </div>
-                <div className="px-3 py-1.5 rounded-full bg-[#0f172a]/80 border border-[#334155]/40 text-xs font-medium text-[#cbd5e1]">
-                    Horizonte: {projectionYears} {projectionYears === 1 ? "año" : "años"}
-                </div>
+                      >
+                        <td className="py-5 px-6">
+                          <span
+                            className={`font-semibold ${
+                              row.metodo === referenceScenario.metodoSeleccionado ? "text-[#f7931a]" : "text-white"
+                            }`}
+                          >
+                            {row.metodo}
+                          </span>
+                        </td>
+                        <td className="py-5 px-6 text-white font-medium">
+                          {formatMoney(row.comision, row.monedaOrigen)}
+                        </td>
+                        <td className="py-5 px-6 text-[#94a3b8]">{row.tiempo}</td>
+                        <td className="py-5 px-6 text-white font-medium">
+                          {formatMoney(row.netoOrigen, row.monedaOrigen)}
+                        </td>
+                        <td className="py-5 px-6">
+                          <span
+                            className={`font-semibold ${
+                              row.metodo === referenceScenario.metodoSeleccionado ? "text-[#f7931a]" : "text-white"
+                            }`}
+                          >
+                            {formatMoney(row.recibidoMXN, referenceScenario.monedaDestino)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            {/* Gráfica de barras para comparación acumulada */}
-            <div className="mt-8 bg-[#0f172a]/40 border border-[#334155]/30 rounded-xl p-6">
+            <div className="glow-blue bg-gradient-to-br from-[#1e293b] via-[#1e293b]/80 to-[#0f172a] border border-[#334155]/50 p-6 lg:p-8 rounded-2xl flex flex-col">
+              <div className="flex items-start gap-5 mb-6">
+                <div className="shrink-0 relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/30 to-[#8b5cf6]/30 rounded-full blur-lg" />
+                  <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-[#1e293b] to-[#0f172a] flex items-center justify-center border border-[#3b82f6]/30 ring-2 ring-[#3b82f6]/10">
+                    <img
+                      src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ajolote%20fintech-GPEqul13Rds1oDQEOr50vslu6pr6lQ.png"
+                      alt="Decisio Assistant"
+                      className="w-9 h-9 object-contain"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-[#3b82f6] mb-1">Decisio</p>
+                  <p className="text-white font-medium text-lg">Interpretación del resultado</p>
+                </div>
+              </div>
+
+              <div className="space-y-4 flex-1">
+                <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
+                  <p className="text-sm text-[#cbd5e1] leading-relaxed">
+                    <span className="text-[#3b82f6] font-medium">Sobre el envío:</span> el monto base de la remesa parte en {referenceScenario.monedaOrigen} y luego se compara por comisión, tiempo y recepción estimada en México.
+                  </p>
+                </div>
+                <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
+                  <p className="text-sm text-[#cbd5e1] leading-relaxed">
+                    <span className="text-[#22c55e] font-medium">Sobre Bitcoin:</span> en este escenario destaca por dejar una recepción final más alta, debido a que reduce el costo operativo frente a un banco o una remesadora tradicional.
+                  </p>
+                </div>
+                <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
+                  <p className="text-sm text-[#cbd5e1] leading-relaxed">
+                    <span className="text-[#f59e0b] font-medium">Sobre la recepción en México:</span> el valor final expresado en MXN es una estimación con tipo de cambio de referencia; la cantidad real puede variar según conversión y proveedor de salida.
+                  </p>
+                </div>
+              </div>
+
+              <Button
+                onClick={onNewSimulation}
+                className="btn-shine mt-6 w-full bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:opacity-90 text-white py-6 font-semibold rounded-xl shadow-xl shadow-[#3b82f6]/25"
+              >
+                <RefreshCw className="mr-2 w-5 h-5" />
+                Explorar otro escenario
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-[#334155]/40 rounded-2xl p-6 shadow-xl shadow-black/10">
+              <div className="flex items-start justify-between gap-4 mb-5">
+                <div>
+                  <h3 className="text-xl font-semibold text-white">Proyección acumulada</h3>
+                  <p className="text-sm text-[#94a3b8] mt-1">
+                    Impacto estimado de una remesa {referenceScenario.frecuencia.toLowerCase()} de{" "}
+                    {formatMoney(referenceScenario.montoBase, referenceScenario.monedaOrigen)} durante{" "}
+                    {projectionYears} {projectionYears === 1 ? "año" : "años"}.
+                  </p>
+                </div>
+                <div className="px-3 py-1.5 rounded-full bg-[#0f172a]/80 border border-[#334155]/40 text-xs font-medium text-[#cbd5e1]">
+                  Horizonte: {projectionYears} {projectionYears === 1 ? "año" : "años"}
+                </div>
+              </div>
+
+              <div className="mb-2">
+                <input
+                  type="range"
+                  min="1"
+                  max="10"
+                  value={projectionYears}
+                  onChange={(e) => setProjectionYears(Number(e.target.value))}
+                  className="w-full accent-[#f7931a]"
+                />
+                <div className="flex justify-between text-[11px] text-[#64748b] mt-2">
+                  <span>1 año</span>
+                  <span>10 años</span>
+                </div>
+              </div>
+            </div>
+                    
+            <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl p-3 shadow-lg shadow-[#1e293b]/50">
+              <div className="inline-flex bg-[#0f172a]/70 border border-[#334155]/50 rounded-xl p-1 gap-1">
+                <button
+                  onClick={() => setChartViewMode("comparativa")}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    chartViewMode === "comparativa"
+                      ? "bg-[#3b82f6] text-white shadow-md"
+                      : "text-[#94a3b8] hover:text-white hover:bg-[#1e293b]"
+                  }`}
+                >
+                  Comparativa
+                </button>
+
+                <button
+                  onClick={() => setChartViewMode("individual")}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    chartViewMode === "individual"
+                      ? "bg-[#8b5cf6] text-white shadow-md"
+                      : "text-[#94a3b8] hover:text-white hover:bg-[#1e293b]"
+                  }`}
+                >
+                  Solo {referenceScenario.metodoSeleccionado}
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-[#0f172a]/40 border border-[#334155]/30 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-white mb-4">
-               Total recibido acumulado
+                Total recibido acumulado
               </h3>
               <p className="text-sm text-[#94a3b8] mb-4">
                 Comparación del total estimado que llegaría a México al cierre del horizonte seleccionado.
               </p>
               <div className="h-[260px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={chartData}
-                      margin={{ top: 20, right: 20, left: 10, bottom: 10 }}
-                      barCategoryGap="35%"
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={visibleChartData}
+                    margin={{ top: 20, right: 20, left: 10, bottom: 10 }}
+                    barCategoryGap="35%"
+                  >
+                    <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
+
+                    <XAxis
+                      dataKey="metodo"
+                      stroke="#94a3b8"
+                    />
+
+                    <YAxis
+                      stroke="#94a3b8"
+                      domain={[0, 'dataMax + 50000']}
+                      tickFormatter={(value) => {
+                        if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
+                        if (value >= 1000) return `${(value / 1000).toFixed(0)}k`
+                        return String(value)
+                      }}
+                    />
+
+                    <Tooltip
+                      formatter={(value: number) =>
+                        new Intl.NumberFormat("es-MX", {
+                          style: "currency",
+                          currency: "MXN",
+                          maximumFractionDigits: 0,
+                        }).format(value)
+                      }
+                    />
+
+                    <Bar
+                      dataKey="valor"
+                      radius={[6, 6, 0, 0]}
+                      animationDuration={500}
+                      animationEasing="ease-out"
                     >
-                      <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
-
-                      <XAxis
-                        dataKey="metodo"
-                        stroke="#94a3b8"
-                      />
-
-                      <YAxis
-                        stroke="#94a3b8"
-                        domain={[0, maxReceivedMXN * 1.08]}
-                        tickFormatter={(value) => {
-                          if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
-                          if (value >= 1000) return `${(value / 1000).toFixed(0)}k`
-                          return String(value)
-                        }}
-                      />
-
-                      <Tooltip
-                        formatter={(value: number) =>
-                          new Intl.NumberFormat("es-MX", {
-                            style: "currency",
-                            currency: "MXN",
-                            maximumFractionDigits: 0,
-                          }).format(value)
-                        }
-                      />
-
-                      <Bar 
-                        dataKey="valor" 
-                        radius={[6, 6, 0, 0]}
-                        animationDuration={500}
-                        animationEasing="ease-out"
-
-                        
-                      >
                       <LabelList
                         dataKey="valor"
                         position="top"
@@ -599,48 +621,51 @@ export function ResultsDashboardRemesas({
                             maximumFractionDigits: 0,
                           }).format(value)
                         }
-                      />  
+                      />
 
-                        {chartData.map((entry, index) => {
-                          const fill =
-                            entry.metodo === "Banco"
-                              ? "#ef4444"
-                              : entry.metodo === "Remesadora"
-                                ? "#f59e0b"
-                                : "#f7931a"
+                      {visibleChartData.map((entry: ChartBarItem, index: number) => {
+                        const fill =
+                          entry.metodo === "Banco"
+                            ? "#ef4444"
+                            : entry.metodo === "Remesadora"
+                              ? "#f59e0b"
+                              : "#f7931a"
 
-                          return <Cell key={`cell-${index}`} fill={fill} />
-
-                       })}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                        return <Cell key={`cell-${index}`} fill={fill} />
+                      })}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-                <p className="text-xs text-[#94a3b8] mt-4 leading-relaxed">
-                  Horizonte actual: {projectionYears} {projectionYears === 1 ? "año" : "años"}.
-                  Cada barra representa el total acumulado estimado por método al cierre del periodo seleccionado.
-                </p>
+              <p className="text-xs text-[#94a3b8] mt-4 leading-relaxed">
+                Horizonte actual: {projectionYears} {projectionYears === 1 ? "año" : "años"}.
+                Cada barra representa el total acumulado estimado por método al cierre del periodo seleccionado.
+              </p>
             </div>
 
-            {/* Gráfica de líneas para comisiones acumuladas */}
-            <div className="mt-8 bg-[#0f172a]/40 border border-[#334155]/30 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-2">
-                Comisiones acumuladas pagadas
-              </h3>
-              <p className="text-sm text-[#94a3b8] mb-4">
-                Comparación del costo total acumulado por método durante el horizonte seleccionado.
-              </p>
+            <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl p-6 shadow-lg shadow-[#1e293b]/50">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#ef4444]/20 to-[#ef4444]/5 border border-[#ef4444]/20 flex items-center justify-center">
+                  <BadgeDollarSign className="w-5 h-5 text-[#ef4444]" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Dinero perdido en comisiones</h3>
+                  <p className="text-sm text-[#94a3b8]">
+                    Comparación del costo total estimado por método al cierre del horizonte seleccionado.
+                  </p>
+                </div>
+              </div>
 
-              <div className="h-[320px]">
+              <div className="h-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={feesChartData} margin={{ top: 20, right: 110, left: 10, bottom: 10 }}>
-                    <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
+                  <BarChart
+                    data={visibleFeesImpactData}
+                    layout="vertical"
+                    margin={{ top: 10, right: 30, left: 20, bottom: 10 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
                     <XAxis
-                      dataKey="year"
-                      stroke="#94a3b8"
-                      label={{ value: "Años", position: "insideBottom", offset: -5 }}
-                    />
-                    <YAxis
+                      type="number"
                       stroke="#94a3b8"
                       tickFormatter={(value) => {
                         if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
@@ -648,197 +673,58 @@ export function ResultsDashboardRemesas({
                         return String(value)
                       }}
                     />
+                    <YAxis
+                      type="category"
+                      dataKey="metodo"
+                      stroke="#94a3b8"
+                      width={100}
+                    />
                     <Tooltip
-                      formatter={(value: number) =>
-                        new Intl.NumberFormat("es-MX", {
-                          style: "currency",
-                          currency: "MXN",
-                          maximumFractionDigits: 0,
-                        }).format(value)
-                      }
+                      cursor={{ fill: "rgba(148, 163, 184, 0.08)" }}
+                      contentStyle={{
+                        backgroundColor: "#0f172a",
+                        border: "1px solid #334155",
+                        borderRadius: "12px",
+                        color: "#fff",
+                      }}
+                      formatter={(value: number) => [formatMoney(value, "MXN"), "Pérdida estimada"]}
                     />
-                    <Legend />
-
-                    <Line
-                      type="monotone"
-                      dataKey="Banco"
-                      stroke="#ef4444"
-                      strokeWidth={3}
-                      dot={renderEndDot("#ef4444") as any}
-                      activeDot={{ r: 5 }}
+                    <Bar
+                      dataKey="perdidoMXN"
+                      radius={[0, 8, 8, 0]}
                       animationDuration={500}
                       animationEasing="ease-out"
-                    />
+                    >
+                      <LabelList
+                        dataKey="perdidoMXN"
+                        position="right"
+                        formatter={(value: number) =>
+                          new Intl.NumberFormat("es-MX", {
+                            style: "currency",
+                            currency: "MXN",
+                            maximumFractionDigits: 0,
+                          }).format(value)
+                        }
+                      />
+                      {visibleFeesImpactData.map((entry: FeesImpactItem, index: number) => {
+                        const fill =
+                          entry.metodo === "Banco"
+                            ? "#ef4444"
+                            : entry.metodo === "Remesadora"
+                              ? "#f59e0b"
+                              : "#f7931a"
 
-                    <Line
-                      type="monotone"
-                      dataKey="Remesadora"
-                      stroke="#f59e0b"
-                      strokeWidth={3}
-                      dot={renderEndDot("#f59e0b") as any}
-                      activeDot={{ r: 5 }}
-                      animationDuration={500}
-                      animationEasing="ease-out"
-                    />
-
-                    <Line
-                      type="monotone"
-                      dataKey="Bitcoin"
-                      stroke="#22c55e"
-                      strokeWidth={4}
-                      dot={renderEndDot("#22c55e") as any}
-                      activeDot={{ r: 6 }}
-                      animationDuration={500}
-                      animationEasing="ease-out"
-                    />
-                  </LineChart>
+                        return <Cell key={`fees-cell-${index}`} fill={fill} />
+                      })}
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
+
               <p className="text-xs text-[#94a3b8] mt-4 leading-relaxed">
-                Esta gráfica muestra cómo crece con el tiempo el dinero perdido en comisiones por método a lo largo de {projectionYears} {projectionYears === 1 ? "año" : "años"}.
+                A mayor barra, mayor dinero perdido en comisiones durante{" "}
+                {projectionYears} {projectionYears === 1 ? "año" : "años"}.
               </p>
-            </div>
-                      
-                      {/* Proyección acumulada con slider */}
-
-            <div className="mb-6">
-                <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={projectionYears}
-                    onChange={(e) => setProjectionYears(Number(e.target.value))}
-                    className="w-full accent-[#f7931a]"
-                />
-                <div className="flex justify-between text-[11px] text-[#64748b] mt-2">
-                    <span>1 año</span>
-                    <span>10 años</span>
-                </div>
-            </div>
-
-            <div className="grid gap-4">
-                <div className="rounded-xl border border-[#334155]/40 bg-[#0f172a]/60 p-4">
-                    <p className="text-xs uppercase tracking-wide text-[#94a3b8] mb-1">
-                        Ahorro acumulado vs Banco
-                    </p>
-                    <p className="text-2xl font-bold text-[#22c55e]">
-                        {formatMoney(savedVsBankProjection, "MXN")}
-                    </p>
-                    <p className="text-xs text-[#64748b] mt-2">
-                        Diferencia acumulada en recepción estimada frente al banco.
-                    </p>
-                </div>
-
-                <div className="rounded-xl border border-[#334155]/40 bg-[#0f172a]/60 p-4">
-                    <p className="text-xs uppercase tracking-wide text-[#94a3b8] mb-1">
-                        Total recibido acumulado por método 
-                    </p>
-                    <p className="text-2xl font-bold text-white">
-                        {formatMoney(selectedProjection.totalReceivedMXN, "MXN")}
-                    </p>
-                    <p className="text-xs text-[#64748b] mt-2">
-                        Suma estimada que podría recibirse en México durante el horizonte seleccionado.
-                    </p>
-                </div>
-
-                <div className="rounded-xl border border-[#334155]/40 bg-[#0f172a]/60 p-4">
-                    <p className="text-xs uppercase tracking-wide text-[#94a3b8] mb-1">
-                        Valor real tras inflación
-                    </p>
-                    <p className="text-2xl font-bold text-[#f8fafc]">
-                        {formatMoney(selectedProjection.realValueMXN, "MXN")}
-                    </p>
-                    <p className="text-xs text-[#64748b] mt-2">
-                        Estimación ajustada con inflación anual de referencia.
-                    </p>
-                </div>
-            </div>
-            <div className="mt-5 rounded-xl border border-[#334155]/30 bg-[#111827]/50 px-4 py-3">
-                <p className="text-xs text-[#94a3b8] leading-relaxed">
-                    Escenario base: {referenceScenario.frecuencia} de{" "}
-                    {formatMoney(referenceScenario.montoBase, referenceScenario.monedaOrigen)} desde{" "}
-                    {referenceScenario.origen} hacia {referenceScenario.destino}.
-                </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="grid xl:grid-cols-[0.9fr_1.1fr] gap-6">
-          <div className="glow-blue bg-gradient-to-br from-[#1e293b] via-[#1e293b]/80 to-[#0f172a] border border-[#334155]/50 p-6 lg:p-8 rounded-2xl flex flex-col">
-            <div className="flex items-start gap-5 mb-6">
-              <div className="shrink-0 relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/30 to-[#8b5cf6]/30 rounded-full blur-lg" />
-                <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-[#1e293b] to-[#0f172a] flex items-center justify-center border border-[#3b82f6]/30 ring-2 ring-[#3b82f6]/10">
-                  <img
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ajolote%20fintech-GPEqul13Rds1oDQEOr50vslu6pr6lQ.png"
-                    alt="Decisio Assistant"
-                    className="w-9 h-9 object-contain"
-                  />
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-[#3b82f6] mb-1">Decisio</p>
-                <p className="text-white font-medium text-lg">Interpretación del resultado</p>
-              </div>
-            </div>
-
-            <div className="space-y-4 flex-1">
-              <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
-                <p className="text-sm text-[#cbd5e1] leading-relaxed">
-                  <span className="text-[#3b82f6] font-medium">Sobre el envío:</span> el monto base de la remesa parte en {referenceScenario.monedaOrigen} y luego se compara por comisión, tiempo y recepción estimada en México.
-                </p>
-              </div>
-              <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
-                <p className="text-sm text-[#cbd5e1] leading-relaxed">
-                  <span className="text-[#22c55e] font-medium">Sobre Bitcoin:</span> en este escenario destaca por dejar una recepción final más alta, debido a que reduce el costo operativo frente a un banco o una remesadora tradicional.
-                </p>
-              </div>
-              <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
-                <p className="text-sm text-[#cbd5e1] leading-relaxed">
-                  <span className="text-[#f59e0b] font-medium">Sobre la recepción en México:</span> el valor final expresado en MXN es una estimación con tipo de cambio de referencia; la cantidad real puede variar según conversión y proveedor de salida.
-                </p>
-              </div>
-            </div>
-
-            <Button
-              onClick={onNewSimulation}
-              className="btn-shine mt-6 w-full bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:opacity-90 text-white py-6 font-semibold rounded-xl shadow-xl shadow-[#3b82f6]/25"
-            >
-              <RefreshCw className="mr-2 w-5 h-5" />
-              Explorar otro escenario
-            </Button>
-          </div>
-
-          <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 p-6 lg:p-8 rounded-2xl">
-            <h3 className="text-xl font-semibold text-white mb-2">Cómo se obtuvo este resultado</h3>
-            <p className="text-sm text-[#64748b] mb-6">
-              Resumen del recorrido educativo usado para explicar una remesa con Bitcoin.
-            </p>
-
-            <div className="space-y-5">
-              {timelineSteps.map((step, index) => {
-                const Icon = step.icon
-                return (
-                  <div key={step.title} className="flex gap-4">
-                    <div className="flex flex-col items-center shrink-0">
-                      <div
-                        className="w-11 h-11 rounded-full flex items-center justify-center border"
-                        style={{
-                          borderColor: `${step.color}55`,
-                          background: `linear-gradient(135deg, ${step.color}22, ${step.color}0d)`,
-                        }}
-                      >
-                        <Icon className="w-5 h-5" style={{ color: step.color }} />
-                      </div>
-                      {index < timelineSteps.length - 1 && <div className="w-px flex-1 bg-[#334155] my-2" />}
-                    </div>
-                    <div className="pt-1 pb-4">
-                      <p className="text-white font-semibold mb-1">{step.title}</p>
-                      <p className="text-sm text-[#94a3b8] leading-relaxed">{step.description}</p>
-                    </div>
-                  </div>
-                )
-              })}
             </div>
           </div>
         </section>
