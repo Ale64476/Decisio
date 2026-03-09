@@ -7,6 +7,126 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 interface ResultsDashboardProps {
   onBack: () => void
   onNewSimulation: () => void
+  selectedMonto: string
+  selectedFrecuencia: string
+  selectedAnos: string
+  selectedMetodo: string
+  selectedInterest: string
+}
+
+const calculateTotalContribution = (monto: string, frecuencia: string, periodo: string): number => {
+  const montoNum = parseInt(monto.replace(/[^\d]/g, ''))
+  const periodoNum = parseInt(periodo.replace(/\D/g, ''))
+
+  let frecuenciaNum: number
+  switch (frecuencia) {
+    case "Unica vez":
+      return montoNum
+    case "Mensual":
+      frecuenciaNum = 12
+      break
+    case "Semanal":
+      frecuenciaNum = 52
+      break
+    case "Quincenal":
+      frecuenciaNum = 24
+      break
+    default:
+      frecuenciaNum = 1
+  }
+
+  return montoNum * frecuenciaNum * periodoNum
+}
+
+/**
+ * Calcula el valor nominal aplicando interés compuesto según frecuencia.
+ * - efectivo: sin rendimientos
+ * - cuenta de ahorro: tasa seleccionada compuesta según la frecuencia
+ * - bitcoin: rendimiento promedio 20% anual compuesto
+ *
+ * La fórmula usada es la del valor futuro de una anualidad ordinaria:
+ *   FV = P * [((1 + r)^n - 1) / r]
+ * donde P es el monto por periodo, r la tasa por periodo y n el número de
+ * periodos totales. Para "Unica vez" se utiliza la fórmula de un solo depósito:
+ *   FV = P * (1 + r)^{years}
+ */
+const calculateNominalValue = (
+  monto: string,
+  frecuencia: string,
+  periodo: string,
+  metodo: string,
+  interest: string
+): number => {
+  const montoNum = parseInt(monto.replace(/[^\d]/g, ''), 10)
+  const years = parseInt(periodo.replace(/\D/g, ''), 10)
+
+  let periodsPerYear = 1
+  switch (frecuencia) {
+    case "Mensual":
+      periodsPerYear = 12
+      break
+    case "Semanal":
+      periodsPerYear = 52
+      break
+    case "Quincenal":
+      periodsPerYear = 24
+      break
+    case "Unica vez":
+    default:
+      periodsPerYear = 1
+  }
+
+  const totalPeriods = years * periodsPerYear
+
+  let annualRate = 0
+  if (metodo === "Cuenta de ahorro") {
+    // interest comes like "3%" or similar
+    annualRate = parseFloat(interest.replace("%", "")) / 100
+  } else if (metodo === "Bitcoin") {
+    annualRate = 0.20
+  } else {
+    annualRate = 0
+  }
+
+  // sin rendimientos
+  if (annualRate <= 0 || metodo === "En efectivo") {
+    return montoNum * totalPeriods
+  }
+
+  const ratePerPeriod = annualRate / periodsPerYear
+
+  if (frecuencia === "Unica vez") {
+    // un solo depósito compuesto durante los años
+    return montoNum * Math.pow(1 + ratePerPeriod, totalPeriods)
+  }
+
+  // anualidad ordinaria
+  return montoNum * ((Math.pow(1 + ratePerPeriod, totalPeriods) - 1) / ratePerPeriod)
+}
+
+/**
+ * Calcula el valor real ajustando el valor nominal por inflación.
+ * - Bitcoin: no se ve afectado por la inflación del peso mexicano (valor real = valor nominal)
+ * - Otros métodos: valor real = valor nominal / (1 + 0.04)^años
+ */
+const calculateRealValue = (
+  monto: string,
+  frecuencia: string,
+  periodo: string,
+  metodo: string,
+  interest: string
+): number => {
+  const nominalValue = calculateNominalValue(monto, frecuencia, periodo, metodo, interest)
+  const years = parseInt(periodo.replace(/\D/g, ''), 10)
+
+  if (metodo === "Bitcoin") {
+    // Bitcoin no se ve afectado por la inflación del peso mexicano
+    return nominalValue
+  }
+
+  // Ajuste por inflación del 4% anual
+  const inflationRate = 0.04
+  return nominalValue / Math.pow(1 + inflationRate, years)
 }
 
 const comparisonData = [
@@ -38,7 +158,25 @@ const feesData = [
   { metodo: "Bitcoin", comision: 30, fill: "#22c55e" },
 ]
 
-export function ResultsDashboardAhorro({ onBack, onNewSimulation }: ResultsDashboardProps) {
+export function ResultsDashboardAhorro({ 
+  onBack, 
+  onNewSimulation, 
+  selectedMonto = "$500", 
+  selectedFrecuencia = "Mensual", 
+  selectedAnos = "5 años", 
+  selectedMetodo = "Cuenta de ahorro", 
+  selectedInterest = "3%" 
+}: ResultsDashboardProps) {
+  // Calcular valores dinámicos
+  const aporteTotal = calculateTotalContribution(selectedMonto, selectedFrecuencia, selectedAnos)
+  const valorNominal = calculateNominalValue(selectedMonto, selectedFrecuencia, selectedAnos, selectedMetodo, selectedInterest)
+  const valorReal = calculateRealValue(selectedMonto, selectedFrecuencia, selectedAnos, selectedMetodo, selectedInterest)
+  const perdidaInflacion = valorNominal - valorReal
+
+  // Datos para comparación (simplificado, asumiendo comparación con otros métodos)
+  const comparisonData = [
+    { metodo: selectedMetodo, aporteTotal: aporteTotal, valorNominal: valorNominal, valorReal: valorReal, perdidaInflacion: perdidaInflacion },
+  ]
   return (
     <div className="min-h-screen bg-[#0f172a] relative overflow-hidden">
       {/* Background Effects */}
@@ -95,7 +233,7 @@ export function ResultsDashboardAhorro({ onBack, onNewSimulation }: ResultsDashb
         {/* Title */}
         <div className="mb-10">
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">Resultados de la simulacion</h1>
-          <p className="text-[#94a3b8] text-lg">Comparacion de metodos para envio mensual de $500 USD durante 5 anos</p>
+          <p className="text-[#94a3b8] text-lg">Ahorro de ${selectedMonto} {selectedFrecuencia.toLowerCase()} durante {selectedAnos} usando {selectedMetodo.toLowerCase()}</p>
         </div>
 
         {/* Summary Cards */}
@@ -110,11 +248,11 @@ export function ResultsDashboardAhorro({ onBack, onNewSimulation }: ResultsDashb
                 Mejor opcion
               </span>
             </div>
-            <p className="text-sm text-[#94a3b8] mb-1">Valor final (Bitcoin)</p>
-            <p className="text-3xl font-bold text-white mb-2">$29,850</p>
+            <p className="text-sm text-[#94a3b8] mb-1">Valor final ({selectedMetodo})</p>
+            <p className="text-3xl font-bold text-white mb-2">${valorNominal.toLocaleString()}</p>
             <p className="text-sm text-[#22c55e] flex items-center">
               <TrendingUp className="w-4 h-4 mr-1.5" />
-              +$4,850 vs banco
+              +${(valorNominal - aporteTotal).toLocaleString()} vs aporte total
             </p>
           </div>
 
@@ -124,11 +262,11 @@ export function ResultsDashboardAhorro({ onBack, onNewSimulation }: ResultsDashb
                 <AlertCircle className="w-6 h-6 text-[#ef4444]" />
               </div>
             </div>
-            <p className="text-sm text-[#94a3b8] mb-1">Perdida por comisiones (Banco)</p>
-            <p className="text-3xl font-bold text-white mb-2">$1,500</p>
+            <p className="text-sm text-[#94a3b8] mb-1">Pérdida por inflación</p>
+            <p className="text-3xl font-bold text-white mb-2">${perdidaInflacion.toLocaleString()}</p>
             <p className="text-sm text-[#ef4444] flex items-center">
               <TrendingDown className="w-4 h-4 mr-1.5" />
-              -5% del total enviado
+              -{((perdidaInflacion / valorNominal) * 100).toFixed(1)}% del valor nominal
             </p>
           </div>
 
@@ -139,10 +277,10 @@ export function ResultsDashboardAhorro({ onBack, onNewSimulation }: ResultsDashb
               </div>
             </div>
             <p className="text-sm text-[#94a3b8] mb-1">Impacto de inflacion</p>
-            <p className="text-3xl font-bold text-white mb-2">-$7,500</p>
+            <p className="text-3xl font-bold text-white mb-2">-${perdidaInflacion.toLocaleString()}</p>
             <p className="text-sm text-[#f59e0b] flex items-center">
               <TrendingDown className="w-4 h-4 mr-1.5" />
-              -25% poder adquisitivo
+              -{((perdidaInflacion / valorNominal) * 100).toFixed(1)}% poder adquisitivo
             </p>
           </div>
 
@@ -152,11 +290,11 @@ export function ResultsDashboardAhorro({ onBack, onNewSimulation }: ResultsDashb
                 <Trophy className="w-6 h-6 text-[#3b82f6]" />
               </div>
             </div>
-            <p className="text-sm text-[#94a3b8] mb-1">Escenario mas eficiente</p>
-            <p className="text-3xl font-bold gradient-text-animated mb-2">Bitcoin</p>
+            <p className="text-sm text-[#94a3b8] mb-1">Escenario seleccionado</p>
+            <p className="text-3xl font-bold gradient-text-animated mb-2">{selectedMetodo}</p>
             <p className="text-sm text-[#3b82f6] flex items-center">
               <Trophy className="w-4 h-4 mr-1.5" />
-              Menor costo total
+              Método de ahorro elegido
             </p>
           </div>
         </div>
@@ -170,35 +308,28 @@ export function ResultsDashboardAhorro({ onBack, onNewSimulation }: ResultsDashb
             <table className="w-full">
               <thead>
                 <tr className="bg-[#0f172a]/40">
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Metodo</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Comision</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Tiempo</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Dinero recibido</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Valor real</th>
+                  <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Método</th>
+                  <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Aporte Total</th>
+                  <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Valor Nominal</th>
+                  <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Valor Real</th>
+                  <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Pérdida por Inflación</th>
                 </tr>
               </thead>
               <tbody>
                 {comparisonData.map((row) => (
                   <tr 
                     key={row.metodo} 
-                    className={`border-t border-[#334155]/30 transition-colors ${row.metodo === "Bitcoin" ? "bg-[#22c55e]/5" : "hover:bg-[#0f172a]/20"}`}
+                    className="border-t border-[#334155]/30 transition-colors hover:bg-[#0f172a]/20"
                   >
                     <td className="py-5 px-6">
-                      <span className={`font-semibold ${row.metodo === "Bitcoin" ? "text-[#22c55e]" : "text-white"}`}>
+                      <span className="font-semibold text-white">
                         {row.metodo}
                       </span>
                     </td>
-                    <td className="py-5 px-6">
-                      <span className="text-white font-medium">{row.comision}</span>
-                      <span className="text-[#64748b] text-sm ml-2">({row.comisionPct})</span>
-                    </td>
-                    <td className="py-5 px-6 text-[#94a3b8]">{row.tiempo}</td>
-                    <td className="py-5 px-6 text-white font-medium">{row.recibido}</td>
-                    <td className="py-5 px-6">
-                      <span className={`font-semibold ${row.metodo === "Bitcoin" ? "text-[#22c55e]" : "text-white"}`}>
-                        {row.valorReal}
-                      </span>
-                    </td>
+                    <td className="py-5 px-6 text-white font-medium">${row.aporteTotal.toLocaleString()}</td>
+                    <td className="py-5 px-6 text-white font-medium">${row.valorNominal.toLocaleString()}</td>
+                    <td className="py-5 px-6 text-[#22c55e] font-semibold">${row.valorReal.toLocaleString()}</td>
+                    <td className="py-5 px-6 text-[#ef4444] font-medium">${row.perdidaInflacion.toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
@@ -314,15 +445,13 @@ export function ResultsDashboardAhorro({ onBack, onNewSimulation }: ResultsDashb
               <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
                 <p className="text-sm text-[#cbd5e1] leading-relaxed">
                   <span className="text-[#3b82f6] font-medium">Sobre la inflacion:</span> Aunque un monto nominal parezca igual, su poder adquisitivo real 
-                  puede disminuir con el tiempo. En 5 anos, $30,000 nominales 
-                  equivalen a solo $22,500 en valor real.
+                  puede disminuir con el tiempo. En {selectedAnos}, ${valorNominal.toLocaleString()} nominales 
+                  equivalen a solo ${valorReal.toLocaleString()} en valor real.
                 </p>
               </div>
               <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
                 <p className="text-sm text-[#cbd5e1] leading-relaxed">
-                  <span className="text-[#f59e0b] font-medium">Sobre Bitcoin:</span> Puede comportarse diferente a metodos tradicionales debido 
-                  a su escasez y volatilidad. Sin embargo, las comisiones bajas lo 
-                  hacen atractivo para transferencias frecuentes.
+                  <span className="text-[#f59e0b] font-medium">Sobre {selectedMetodo}:</span> {selectedMetodo === "Bitcoin" ? "Puede comportarse diferente a metodos tradicionales debido a su escasez y volatilidad." : "Las cuentas de ahorro ofrecen rendimientos, pero la inflación puede erosionar el valor."} Las comisiones bajas lo hacen atractivo para ahorros frecuentes.
                 </p>
               </div>
             </div>
