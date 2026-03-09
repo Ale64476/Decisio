@@ -17,9 +17,6 @@
 </p>
 
 ---
-
-## Pitch
-
 En México, millones de familias dependen de las remesas. Aun así, muchas personas no tienen claridad sobre cuánto dinero se pierde realmente entre comisiones, tipos de cambio desfavorables y tiempos de espera.
 
 **Decisio** nace para volver visible ese problema.
@@ -169,14 +166,6 @@ Para levantar la versión de producción:
 pnpm start
 ```
 
-## Despliegue en Vercel
-
-1. Sube el repositorio a GitHub.
-2. Importa el repositorio en Vercel.
-3. Configura la variable:
-   - `GEMINI_API_KEY`
-4. Ejecuta el deploy.
-
 ## Errores comunes
 
 ### 1. Falta la variable de entorno
@@ -230,25 +219,11 @@ A futuro, el proyecto puede crecer con:
 Agrega aquí tu enlace cuando lo tengas publicado:
 
 ```text
-https://tu-proyecto.vercel.app
+https://decisio-1mj5a5prb-al064476-6759s-projects.vercel.app
 ```
 
-## Capturas
-
-Puedes agregar aquí screenshots del simulador, la comparación de resultados y las gráficas para que el repositorio se vea más fuerte visualmente.
-
-Ejemplo:
-
-```md
-![Pantalla principal](./public/demo-home.png)
-![Resultados de remesas](./public/demo-remesas.png)
-![Impacto acumulado](./public/demo-impacto.png)
-```
 
 ## Autor
 
-Desarrollado por **Alejandro y su equipo** como una propuesta enfocada en educación Bitcoin, visualización de remesas y toma de decisiones financieras más informadas.
+Desarrollado por **Alejandro Ordoñez y Néstor Medina** como una propuesta enfocada en educación Bitcoin, visualización de escenarios económicas y toma de decisiones financieras más informadas.
 
-## Licencia
-
-Puedes definir la licencia según las necesidades del equipo o del hackathon.
