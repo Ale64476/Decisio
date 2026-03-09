@@ -411,6 +411,50 @@ export function ResultsDashboardRemesas({
           </div>
         </section>
 
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          <div className="bg-gradient-to-br from-[#16a34a]/10 to-[#16a34a]/5 border border-[#16a34a]/20 rounded-xl p-5">
+            <p className="text-xs text-[#16a34a] font-semibold uppercase tracking-wide">
+              Ahorro acumulado vs Banco
+            </p>
+            <p className="text-2xl font-bold text-white mt-2">
+              {formatMoney(savedVsBankProjection, "MXN")}
+            </p>
+            <p className="text-xs text-[#64748b] mt-1">
+              Diferencia acumulada en recepción estimada frente al banco.
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-[#3b82f6]/10 to-[#3b82f6]/5 border border-[#3b82f6]/20 rounded-xl p-5">
+            <p className="text-xs text-[#3b82f6] font-semibold uppercase tracking-wide">
+              Total recibido acumulado por método
+            </p>
+            <p className="text-2xl font-bold text-white mt-2">
+              {formatMoney(selectedProjection.totalReceivedMXN, "MXN")}
+            </p>
+            <p className="text-xs text-[#64748b] mt-1">
+              Suma estimada que podría recibirse en México durante el horizonte seleccionado.
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-[#f59e0b]/10 to-[#f59e0b]/5 border border-[#f59e0b]/20 rounded-xl p-5">
+            <p className="text-xs text-[#f59e0b] font-semibold uppercase tracking-wide">
+              Valor real tras inflación
+            </p>
+            <p className="text-2xl font-bold text-white mt-2">
+              {formatMoney(selectedProjection.realValueMXN, "MXN")}
+            </p>
+            <p className="text-xs text-[#64748b] mt-1">
+              Estimación ajustada con inflación anual de referencia.
+            </p>
+          </div>
+        </div>
+
+        <p className="text-sm text-[#94a3b8] mt-4">
+          Escenario base: {referenceScenario.frecuencia} de{" "}
+          {formatMoney(referenceScenario.montoBase, referenceScenario.monedaOrigen)} desde{" "}
+          {referenceScenario.origen} hacia {referenceScenario.destino}.
+        </p>    
+
         <section className="grid xl:grid-cols-[1.3fr_0.7fr] gap-6">
           <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl overflow-hidden">
             <div className="p-6 border-b border-[#334155]/30">
@@ -470,6 +514,53 @@ export function ResultsDashboardRemesas({
                 </tbody>
               </table>
             </div>
+
+            <section className="grid xl:grid-cols-[0.9fr_1.1fr] gap-6">
+              <div className="glow-blue bg-gradient-to-br from-[#1e293b] via-[#1e293b]/80 to-[#0f172a] border border-[#334155]/50 p-6 lg:p-8 rounded-2xl flex flex-col">
+                <div className="flex items-start gap-5 mb-6">
+                  <div className="shrink-0 relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/30 to-[#8b5cf6]/30 rounded-full blur-lg" />
+                    <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-[#1e293b] to-[#0f172a] flex items-center justify-center border border-[#3b82f6]/30 ring-2 ring-[#3b82f6]/10">
+                      <img
+                        src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ajolote%20fintech-GPEqul13Rds1oDQEOr50vslu6pr6lQ.png"
+                        alt="Decisio Assistant"
+                        className="w-9 h-9 object-contain"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[#3b82f6] mb-1">Decisio</p>
+                    <p className="text-white font-medium text-lg">Interpretación del resultado</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4 flex-1">
+                  <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
+                    <p className="text-sm text-[#cbd5e1] leading-relaxed">
+                      <span className="text-[#3b82f6] font-medium">Sobre el envío:</span> el monto base de la remesa parte en {referenceScenario.monedaOrigen} y luego se compara por comisión, tiempo y recepción estimada en México.
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
+                    <p className="text-sm text-[#cbd5e1] leading-relaxed">
+                      <span className="text-[#22c55e] font-medium">Sobre Bitcoin:</span> en este escenario destaca por dejar una recepción final más alta, debido a que reduce el costo operativo frente a un banco o una remesadora tradicional.
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
+                    <p className="text-sm text-[#cbd5e1] leading-relaxed">
+                      <span className="text-[#f59e0b] font-medium">Sobre la recepción en México:</span> el valor final expresado en MXN es una estimación con tipo de cambio de referencia; la cantidad real puede variar según conversión y proveedor de salida.
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={onNewSimulation}
+                  className="btn-shine mt-6 w-full bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:opacity-90 text-white py-6 font-semibold rounded-xl shadow-xl shadow-[#3b82f6]/25"
+                >
+                  <RefreshCw className="mr-2 w-5 h-5" />
+                  Explorar otro escenario
+                </Button>
+              </div>
+            </section>
           </div>
           
           <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-[#334155]/40 rounded-2xl p-6 shadow-xl shadow-black/10">
@@ -672,129 +763,7 @@ export function ResultsDashboardRemesas({
                 </div>
             </div>
 
-            <div className="grid gap-4">
-                <div className="rounded-xl border border-[#334155]/40 bg-[#0f172a]/60 p-4">
-                    <p className="text-xs uppercase tracking-wide text-[#94a3b8] mb-1">
-                        Ahorro acumulado vs Banco
-                    </p>
-                    <p className="text-2xl font-bold text-[#22c55e]">
-                        {formatMoney(savedVsBankProjection, "MXN")}
-                    </p>
-                    <p className="text-xs text-[#64748b] mt-2">
-                        Diferencia acumulada en recepción estimada frente al banco.
-                    </p>
-                </div>
-
-                <div className="rounded-xl border border-[#334155]/40 bg-[#0f172a]/60 p-4">
-                    <p className="text-xs uppercase tracking-wide text-[#94a3b8] mb-1">
-                        Total recibido acumulado por método 
-                    </p>
-                    <p className="text-2xl font-bold text-white">
-                        {formatMoney(selectedProjection.totalReceivedMXN, "MXN")}
-                    </p>
-                    <p className="text-xs text-[#64748b] mt-2">
-                        Suma estimada que podría recibirse en México durante el horizonte seleccionado.
-                    </p>
-                </div>
-
-                <div className="rounded-xl border border-[#334155]/40 bg-[#0f172a]/60 p-4">
-                    <p className="text-xs uppercase tracking-wide text-[#94a3b8] mb-1">
-                        Valor real tras inflación
-                    </p>
-                    <p className="text-2xl font-bold text-[#f8fafc]">
-                        {formatMoney(selectedProjection.realValueMXN, "MXN")}
-                    </p>
-                    <p className="text-xs text-[#64748b] mt-2">
-                        Estimación ajustada con inflación anual de referencia.
-                    </p>
-                </div>
-            </div>
             <div className="mt-5 rounded-xl border border-[#334155]/30 bg-[#111827]/50 px-4 py-3">
-                <p className="text-xs text-[#94a3b8] leading-relaxed">
-                    Escenario base: {referenceScenario.frecuencia} de{" "}
-                    {formatMoney(referenceScenario.montoBase, referenceScenario.monedaOrigen)} desde{" "}
-                    {referenceScenario.origen} hacia {referenceScenario.destino}.
-                </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="grid xl:grid-cols-[0.9fr_1.1fr] gap-6">
-          <div className="glow-blue bg-gradient-to-br from-[#1e293b] via-[#1e293b]/80 to-[#0f172a] border border-[#334155]/50 p-6 lg:p-8 rounded-2xl flex flex-col">
-            <div className="flex items-start gap-5 mb-6">
-              <div className="shrink-0 relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/30 to-[#8b5cf6]/30 rounded-full blur-lg" />
-                <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-[#1e293b] to-[#0f172a] flex items-center justify-center border border-[#3b82f6]/30 ring-2 ring-[#3b82f6]/10">
-                  <img
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ajolote%20fintech-GPEqul13Rds1oDQEOr50vslu6pr6lQ.png"
-                    alt="Decisio Assistant"
-                    className="w-9 h-9 object-contain"
-                  />
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-[#3b82f6] mb-1">Decisio</p>
-                <p className="text-white font-medium text-lg">Interpretación del resultado</p>
-              </div>
-            </div>
-
-            <div className="space-y-4 flex-1">
-              <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
-                <p className="text-sm text-[#cbd5e1] leading-relaxed">
-                  <span className="text-[#3b82f6] font-medium">Sobre el envío:</span> el monto base de la remesa parte en {referenceScenario.monedaOrigen} y luego se compara por comisión, tiempo y recepción estimada en México.
-                </p>
-              </div>
-              <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
-                <p className="text-sm text-[#cbd5e1] leading-relaxed">
-                  <span className="text-[#22c55e] font-medium">Sobre Bitcoin:</span> en este escenario destaca por dejar una recepción final más alta, debido a que reduce el costo operativo frente a un banco o una remesadora tradicional.
-                </p>
-              </div>
-              <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
-                <p className="text-sm text-[#cbd5e1] leading-relaxed">
-                  <span className="text-[#f59e0b] font-medium">Sobre la recepción en México:</span> el valor final expresado en MXN es una estimación con tipo de cambio de referencia; la cantidad real puede variar según conversión y proveedor de salida.
-                </p>
-              </div>
-            </div>
-
-            <Button
-              onClick={onNewSimulation}
-              className="btn-shine mt-6 w-full bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:opacity-90 text-white py-6 font-semibold rounded-xl shadow-xl shadow-[#3b82f6]/25"
-            >
-              <RefreshCw className="mr-2 w-5 h-5" />
-              Explorar otro escenario
-            </Button>
-          </div>
-
-          <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 p-6 lg:p-8 rounded-2xl">
-            <h3 className="text-xl font-semibold text-white mb-2">Cómo se obtuvo este resultado</h3>
-            <p className="text-sm text-[#64748b] mb-6">
-              Resumen del recorrido educativo usado para explicar una remesa con Bitcoin.
-            </p>
-
-            <div className="space-y-5">
-              {timelineSteps.map((step, index) => {
-                const Icon = step.icon
-                return (
-                  <div key={step.title} className="flex gap-4">
-                    <div className="flex flex-col items-center shrink-0">
-                      <div
-                        className="w-11 h-11 rounded-full flex items-center justify-center border"
-                        style={{
-                          borderColor: `${step.color}55`,
-                          background: `linear-gradient(135deg, ${step.color}22, ${step.color}0d)`,
-                        }}
-                      >
-                        <Icon className="w-5 h-5" style={{ color: step.color }} />
-                      </div>
-                      {index < timelineSteps.length - 1 && <div className="w-px flex-1 bg-[#334155] my-2" />}
-                    </div>
-                    <div className="pt-1 pb-4">
-                      <p className="text-white font-semibold mb-1">{step.title}</p>
-                      <p className="text-sm text-[#94a3b8] leading-relaxed">{step.description}</p>
-                    </div>
-                  </div>
-                )
-              })}
             </div>
           </div>
         </section>
