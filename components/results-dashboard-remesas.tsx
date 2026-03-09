@@ -456,111 +456,113 @@ export function ResultsDashboardRemesas({
         </p>    
 
         <section className="grid xl:grid-cols-[1.3fr_0.7fr] gap-6">
-          <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl overflow-hidden">
-            <div className="p-6 border-b border-[#334155]/30">
-              <h3 className="text-xl font-semibold text-white">Comparación del envío actual</h3>
-              <p className="text-sm text-[#64748b] mt-1">
-                Costo, tiempo y recepción estimada por método para una sola remesa.
-              </p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                    <tr className="bg-[#0f172a]/40">
-                    <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Método</th>
-                    <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Comisión</th>
-                    <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Tiempo</th>
-                    <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Recibido estimado</th>
-                    <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Valor real</th>
-                    </tr>
-                </thead>
-                <tbody>
-                  {comparisonRows.map((row) => (
-                    <tr
-                    key={row.metodo}
-                    className={`border-t transition-colors ${
-                        row.metodo === referenceScenario.metodoSeleccionado
-                        ? "bg-[#f7931a]/10 border-[#f7931a]/30"
-                        : "border-[#334155]/30 hover:bg-[#0f172a]/20"
-                    }`}
-                    >
-                      <td className="py-5 px-6">
-                        <span
-                        className={`font-semibold ${
-                            row.metodo === referenceScenario.metodoSeleccionado ? "text-[#f7931a]" : "text-white"
-                        }`}
-                        >
-                        {row.metodo}
-                        </span>
-                      </td>
-                      <td className="py-5 px-6 text-white font-medium">
-                        {formatMoney(row.comision, row.monedaOrigen)}
-                      </td>
-                      <td className="py-5 px-6 text-[#94a3b8]">{row.tiempo}</td>
-                      <td className="py-5 px-6 text-white font-medium">
-                        {formatMoney(row.netoOrigen, row.monedaOrigen)}
-                      </td>
-                      <td className="py-5 px-6">
-                        <span
-                        className={`font-semibold ${
-                            row.metodo === referenceScenario.metodoSeleccionado ? "text-[#f7931a]" : "text-white"
-                        }`}
-                        >
-                        {formatMoney(row.recibidoMXN, referenceScenario.monedaDestino)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="space-y-6"> 
+            <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl overflow-hidden">
+              <div className="p-6 border-b border-[#334155]/30">
+                <h3 className="text-xl font-semibold text-white">Comparación del envío actual</h3>
+                <p className="text-sm text-[#64748b] mt-1">
+                  Costo, tiempo y recepción estimada por método para una sola remesa.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                      <tr className="bg-[#0f172a]/40">
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Método</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Comisión</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Tiempo</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Recibido estimado</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-[#94a3b8]">Valor real</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                    {comparisonRows.map((row) => (
+                      <tr
+                      key={row.metodo}
+                      className={`border-t transition-colors ${
+                          row.metodo === referenceScenario.metodoSeleccionado
+                          ? "bg-[#f7931a]/10 border-[#f7931a]/30"
+                          : "border-[#334155]/30 hover:bg-[#0f172a]/20"
+                      }`}
+                      >
+                        <td className="py-5 px-6">
+                          <span
+                          className={`font-semibold ${
+                              row.metodo === referenceScenario.metodoSeleccionado ? "text-[#f7931a]" : "text-white"
+                          }`}
+                          >
+                          {row.metodo}
+                          </span>
+                        </td>
+                        <td className="py-5 px-6 text-white font-medium">
+                          {formatMoney(row.comision, row.monedaOrigen)}
+                        </td>
+                        <td className="py-5 px-6 text-[#94a3b8]">{row.tiempo}</td>
+                        <td className="py-5 px-6 text-white font-medium">
+                          {formatMoney(row.netoOrigen, row.monedaOrigen)}
+                        </td>
+                        <td className="py-5 px-6">
+                          <span
+                          className={`font-semibold ${
+                              row.metodo === referenceScenario.metodoSeleccionado ? "text-[#f7931a]" : "text-white"
+                          }`}
+                          >
+                          {formatMoney(row.recibidoMXN, referenceScenario.monedaDestino)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-            <section className="grid xl:grid-cols-[0.9fr_1.1fr] gap-6">
-              <div className="glow-blue bg-gradient-to-br from-[#1e293b] via-[#1e293b]/80 to-[#0f172a] border border-[#334155]/50 p-6 lg:p-8 rounded-2xl flex flex-col">
-                <div className="flex items-start gap-5 mb-6">
-                  <div className="shrink-0 relative">
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/30 to-[#8b5cf6]/30 rounded-full blur-lg" />
-                    <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-[#1e293b] to-[#0f172a] flex items-center justify-center border border-[#3b82f6]/30 ring-2 ring-[#3b82f6]/10">
-                      <img
-                        src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ajolote%20fintech-GPEqul13Rds1oDQEOr50vslu6pr6lQ.png"
-                        alt="Decisio Assistant"
-                        className="w-9 h-9 object-contain"
-                      />
+              <section className="grid xl:grid-cols-[0.9fr_1.1fr] gap-6">
+                <div className="glow-blue bg-gradient-to-br from-[#1e293b] via-[#1e293b]/80 to-[#0f172a] border border-[#334155]/50 p-6 lg:p-8 rounded-2xl flex flex-col">
+                  <div className="flex items-start gap-5 mb-6">
+                    <div className="shrink-0 relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/30 to-[#8b5cf6]/30 rounded-full blur-lg" />
+                      <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-[#1e293b] to-[#0f172a] flex items-center justify-center border border-[#3b82f6]/30 ring-2 ring-[#3b82f6]/10">
+                        <img
+                          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ajolote%20fintech-GPEqul13Rds1oDQEOr50vslu6pr6lQ.png"
+                          alt="Decisio Assistant"
+                          className="w-9 h-9 object-contain"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[#3b82f6] mb-1">Decisio</p>
+                      <p className="text-white font-medium text-lg">Interpretación del resultado</p>
                     </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-[#3b82f6] mb-1">Decisio</p>
-                    <p className="text-white font-medium text-lg">Interpretación del resultado</p>
-                  </div>
-                </div>
 
-                <div className="space-y-4 flex-1">
-                  <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
-                    <p className="text-sm text-[#cbd5e1] leading-relaxed">
-                      <span className="text-[#3b82f6] font-medium">Sobre el envío:</span> el monto base de la remesa parte en {referenceScenario.monedaOrigen} y luego se compara por comisión, tiempo y recepción estimada en México.
-                    </p>
+                  <div className="space-y-4 flex-1">
+                    <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
+                      <p className="text-sm text-[#cbd5e1] leading-relaxed">
+                        <span className="text-[#3b82f6] font-medium">Sobre el envío:</span> el monto base de la remesa parte en {referenceScenario.monedaOrigen} y luego se compara por comisión, tiempo y recepción estimada en México.
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
+                      <p className="text-sm text-[#cbd5e1] leading-relaxed">
+                        <span className="text-[#22c55e] font-medium">Sobre Bitcoin:</span> en este escenario destaca por dejar una recepción final más alta, debido a que reduce el costo operativo frente a un banco o una remesadora tradicional.
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
+                      <p className="text-sm text-[#cbd5e1] leading-relaxed">
+                        <span className="text-[#f59e0b] font-medium">Sobre la recepción en México:</span> el valor final expresado en MXN es una estimación con tipo de cambio de referencia; la cantidad real puede variar según conversión y proveedor de salida.
+                      </p>
+                    </div>
                   </div>
-                  <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
-                    <p className="text-sm text-[#cbd5e1] leading-relaxed">
-                      <span className="text-[#22c55e] font-medium">Sobre Bitcoin:</span> en este escenario destaca por dejar una recepción final más alta, debido a que reduce el costo operativo frente a un banco o una remesadora tradicional.
-                    </p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-[#0f172a]/60 border border-[#334155]/30">
-                    <p className="text-sm text-[#cbd5e1] leading-relaxed">
-                      <span className="text-[#f59e0b] font-medium">Sobre la recepción en México:</span> el valor final expresado en MXN es una estimación con tipo de cambio de referencia; la cantidad real puede variar según conversión y proveedor de salida.
-                    </p>
-                  </div>
-                </div>
 
-                <Button
-                  onClick={onNewSimulation}
-                  className="btn-shine mt-6 w-full bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:opacity-90 text-white py-6 font-semibold rounded-xl shadow-xl shadow-[#3b82f6]/25"
-                >
-                  <RefreshCw className="mr-2 w-5 h-5" />
-                  Explorar otro escenario
-                </Button>
-              </div>
-            </section>
+                  <Button
+                    onClick={onNewSimulation}
+                    className="btn-shine mt-6 w-full bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:opacity-90 text-white py-6 font-semibold rounded-xl shadow-xl shadow-[#3b82f6]/25"
+                  >
+                    <RefreshCw className="mr-2 w-5 h-5" />
+                    Explorar otro escenario
+                  </Button>
+                </div>
+              </section>
+            </div>  
           </div>
           
           <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-[#334155]/40 rounded-2xl p-6 shadow-xl shadow-black/10">
