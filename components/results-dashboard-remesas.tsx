@@ -156,6 +156,9 @@ export function ResultsDashboardRemesas({
 }: ResultsDashboardProps) {
   const [projectionYears, setProjectionYears] = useState(5)
   const [chartViewMode, setChartViewMode] = useState<"comparativa" | "individual">("comparativa")
+  const [decisioQuestion, setDecisioQuestion] = useState("")
+  const [decisioAnswer, setDecisioAnswer] = useState("")
+  const [isAskingDecisio, setIsAskingDecisio] = useState(false)
 
   const referenceScenario = {
     ...defaultReferenceScenario,
@@ -268,6 +271,42 @@ export function ResultsDashboardRemesas({
     chartViewMode === "comparativa"
       ? `${topFeesLoss.metodo} acumula la mayor pérdida estimada en comisiones en este horizonte.`
       : `${referenceScenario.metodoSeleccionado} concentra aquí la pérdida total estimada en comisiones del periodo.`
+
+  const handleAskDecisio = async () => {
+  if (!decisioQuestion.trim()) return
+
+  setIsAskingDecisio(true)
+  setDecisioAnswer("")
+
+  try {
+    const res = await fetch("/api/decisio", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        question: decisioQuestion,
+        simulation: {
+          metodo: referenceScenario.metodoSeleccionado,
+          monto: referenceScenario.montoBase,
+          origen: referenceScenario.origen,
+          destino: referenceScenario.destino,
+          comision: selectedProjection.totalFees,
+          tiempo: comparisonRows.find(
+            (row) => row.metodo === referenceScenario.metodoSeleccionado
+          )?.estimatedTime ?? "No especificado",
+        },
+      }),
+    })
+
+    const data = await res.json()
+    setDecisioAnswer(data.answer ?? "No pude obtener una respuesta.")
+  } catch (error) {
+    setDecisioAnswer("Ocurrió un error al consultar a Decisio.")
+  } finally {
+    setIsAskingDecisio(false)
+  }
+}
 
   return (
     <div className="min-h-screen bg-[#0f172a] relative overflow-hidden">
@@ -524,6 +563,36 @@ export function ResultsDashboardRemesas({
                   <p className="text-sm text-[#cbd5e1] leading-relaxed">
                     <span className="text-[#f59e0b] font-medium">Sobre la recepción en México:</span> el valor final expresado en MXN es una estimación con tipo de cambio de referencia; la cantidad real puede variar según conversión y proveedor de salida.
                   </p>
+
+                  <div className="mt-5 space-y-3">
+                    <textarea
+                      value={decisioQuestion}
+                      onChange={(e) => setDecisioQuestion(e.target.value)}
+                      placeholder="Pregúntale a Decisio sobre Bitcoin, comisiones o esta simulación..."
+                      className="w-full min-h-[90px] rounded-xl bg-[#0f172a] border border-[#334155] text-white px-4 py-3 text-sm outline-none resize-none focus:border-[#3b82f6]"
+                    />
+
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={handleAskDecisio}
+                        disabled={isAskingDecisio || !decisioQuestion.trim()}
+                        className="px-4 py-2.5 rounded-xl bg-[#3b82f6] text-white text-sm font-semibold transition-all disabled:opacity-60"
+                      >
+                        {isAskingDecisio ? "Consultando..." : "Preguntar a Decisio"}
+                      </button>
+
+                      <p className="text-xs text-[#64748b]">
+                        Respuestas breves, enfocadas en Bitcoin y remesas.
+                      </p>
+                    </div>
+
+                    {decisioAnswer && (
+                      <div className="rounded-xl border border-[#334155] bg-[#0f172a]/80 p-4">
+                        <p className="text-sm text-[#cbd5e1] leading-relaxed">{decisioAnswer}</p>
+                      </div>
+                    )}
+                  </div>
+
                 </div>
               </div>
 
