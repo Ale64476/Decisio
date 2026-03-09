@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, Play, Wallet, Globe, Server, HardDrive, Cpu, CheckCircle, ArrowRight, Lightbulb, Zap, Shield, TrendingUp, Circle, LucideIcon, BedSingle, TrendingDown } from "lucide-react"
+import { ArrowLeft, Play, Wallet, Globe, Server, HardDrive, Cpu, CheckCircle, ArrowRight, Lightbulb, Zap, Shield, TrendingUp, Circle, LucideIcon, BedSingle, TrendingDown, BanknoteArrowUpIcon, BanknoteArrowUp, Landmark, HandCoins } from "lucide-react"
 import { useState } from "react"
 
 interface SimulatorPanelProps {
@@ -55,9 +55,10 @@ switch (selectedMetodo) {
     break
   case "Cuenta de ahorro":
     transactionSteps = [
-      { id: "colchon", label: "Colchon", icon: BedSingle, description: "Escondes tu dinero bajo el colchon.", color: "#3b82f6" },
-      { id: "confirmacion", label: "Confirmación", icon: CheckCircle, description: "Te aseguras de que nadie lo vio.", color: "#22c55e" },
-      { id: "inflacion", label: "Inflacion", icon: TrendingDown, description: "La inflacion seguira afectando el valor de tu dinero.", color: "#f59e0b" },
+      { id: "apertura", label: "Apertura", icon: Landmark, description: "Abres una cuenta de ahorro en el banco.", color: "#3b82f6" },
+      { id: "deposito", label: "Deposito", icon: BanknoteArrowUp, description: "Depositas tu dinero en tu cuenta de ahorro.", color: "#22c55e" },
+      { id: "rendimiento", label: "Rendimientos", icon: HandCoins, description: "Obtienes los rendimientos por tu dinero ahorrado.", color: "#10b981" },
+      { id: "inflacion", label: "Inflación", icon: TrendingDown, description: "La inflación disminuye el poder adquisitivo de tu dinero.", color: "#f59e0b" },
       
     ]
     break
@@ -66,7 +67,7 @@ switch (selectedMetodo) {
     transactionSteps = [
       { id: "colchon", label: "Colchon", icon: BedSingle, description: "Escondes tu dinero bajo el colchon.", color: "#3b82f6" },
       { id: "confirmacion", label: "Confirmación", icon: CheckCircle, description: "Te aseguras de que nadie lo vio.", color: "#22c55e" },
-      { id: "inflacion", label: "Inflacion", icon: TrendingDown, description: "La inflacion seguira afectando el valor de tu dinero.", color: "#f59e0b" },
+      { id: "inflacion", label: "Inflación", icon: TrendingDown, description: "La inflación seguira afectando el valor de tu dinero.", color: "#f59e0b" },
     ]
     break
 }
