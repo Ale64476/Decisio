@@ -167,15 +167,187 @@ export function ResultsDashboardAhorro({
   selectedMetodo = "Cuenta de ahorro", 
   selectedInterest = "3%" 
 }: ResultsDashboardProps) {
-  // Calcular valores dinámicos
+  // Calcular valores dinámicos para el método seleccionado
   const aporteTotal = calculateTotalContribution(selectedMonto, selectedFrecuencia, selectedAnos)
   const valorNominal = calculateNominalValue(selectedMonto, selectedFrecuencia, selectedAnos, selectedMetodo, selectedInterest)
   const valorReal = calculateRealValue(selectedMonto, selectedFrecuencia, selectedAnos, selectedMetodo, selectedInterest)
   const perdidaInflacion = valorNominal - valorReal
 
-  // Datos para comparación (simplificado, asumiendo comparación con otros métodos)
+  // Calcular valores para los otros métodos
+  const efectivoNominal = calculateNominalValue(selectedMonto, selectedFrecuencia, selectedAnos, "En efectivo", "0%")
+  const efectivoReal = calculateRealValue(selectedMonto, selectedFrecuencia, selectedAnos, "En efectivo", "0%")
+  const efectivoPerdida = efectivoNominal - efectivoReal
+
+  const cuentaAhorroNominal = calculateNominalValue(selectedMonto, selectedFrecuencia, selectedAnos, "Cuenta de ahorro", "3%")
+  const cuentaAhorroReal = calculateRealValue(selectedMonto, selectedFrecuencia, selectedAnos, "Cuenta de ahorro", "3%")
+  const cuentaAhorroPerdida = cuentaAhorroNominal - cuentaAhorroReal
+
+  const bitcoinNominal = calculateNominalValue(selectedMonto, selectedFrecuencia, selectedAnos, "Bitcoin", "0%")
+  const bitcoinReal = calculateRealValue(selectedMonto, selectedFrecuencia, selectedAnos, "Bitcoin", "0%")
+  const bitcoinPerdida = bitcoinNominal - bitcoinReal
+
+  // Generar datos dinámicos para los gráficos
+  const generateGrowthData = () => {
+    const years = parseInt(selectedAnos.replace(/\D/g, ''), 10)
+    const data = []
+    const montoNum = parseInt(selectedMonto.replace(/[^\d]/g, ''), 10)
+    
+    // Calcular períodos por año según frecuencia
+    const periodosPorAnio = {
+      "Unica vez": 1,
+      "Mensual": 12,
+      "Semanal": 52,
+      "Quincenal": 24
+    }[selectedFrecuencia] || 12
+    
+    const tasaAnual = selectedFrecuencia === "Unica vez" ? 0 : 
+                      (parseFloat(selectedInterest.replace("%", "")) / 100)
+    
+    if (years === 1) {
+      // Generar datos mensuales para 1 año
+      let acumuladoEfectivo = 0
+      let acumuladoCuenta = 0
+      let acumuladoBitcoin = 0
+      
+      const tasaMensualCuenta = tasaAnual / 12
+      const tasaMensualBitcoin = 0.20 / 12
+      
+      for (let month = 1; month <= 12; month++) {
+        // Aporte mensual
+        acumuladoEfectivo += montoNum * (periodosPorAnio === 12 ? 1 : 0)
+        acumuladoCuenta += montoNum * (periodosPorAnio === 12 ? 1 : 0)
+        acumuladoBitcoin += montoNum * (periodosPorAnio === 12 ? 1 : 0)
+        
+        // Aplicar interés (intereses sobre el total acumulado)
+        if (selectedFrecuencia === "Mensual") {
+          acumuladoCuenta = acumuladoCuenta * (1 + tasaMensualCuenta)
+          acumuladoBitcoin = acumuladoBitcoin * (1 + tasaMensualBitcoin)
+        }
+        
+        data.push({
+          periodo: `Mes ${month}`,
+          efectivo: Math.round(acumuladoEfectivo),
+          cuentaAhorro: Math.round(acumuladoCuenta),
+          bitcoin: Math.round(acumuladoBitcoin)
+        })
+      }
+    } else {
+      // Generar datos anuales para múltiples años
+      for (let i = 1; i <= years; i++) {
+        const anosStr = `${i} año${i === 1 ? '' : 's'}`
+        
+        const efectivoVal = calculateNominalValue(selectedMonto, selectedFrecuencia, anosStr, "En efectivo", "0%")
+        const cuentaVal = calculateNominalValue(selectedMonto, selectedFrecuencia, anosStr, "Cuenta de ahorro", selectedInterest)
+        const bitcoinVal = calculateNominalValue(selectedMonto, selectedFrecuencia, anosStr, "Bitcoin", "0%")
+        
+        data.push({
+          periodo: `${i} ${i === 1 ? 'año' : 'años'}`,
+          efectivo: Math.round(efectivoVal),
+          cuentaAhorro: Math.round(cuentaVal),
+          bitcoin: Math.round(bitcoinVal)
+        })
+      }
+    }
+    return data
+  }
+
+  const generateInflationData = () => {
+    const years = parseInt(selectedAnos.replace(/\D/g, ''), 10)
+    const data = []
+    const montoNum = parseInt(selectedMonto.replace(/[^\d]/g, ''), 10)
+    
+    const periodosPorAnio = {
+      "Unica vez": 1,
+      "Mensual": 12,
+      "Semanal": 52,
+      "Quincenal": 24
+    }[selectedFrecuencia] || 12
+    
+    const tasaAnual = selectedFrecuencia === "Unica vez" ? 0 : 
+                      (parseFloat(selectedInterest.replace("%", "")) / 100)
+    
+    if (years === 1) {
+      // Generar datos mensuales para 1 año
+      let acumuladoNominal = 0
+      const tasaMensual = selectedMetodo === "Bitcoin" ? 0.20 / 12 : tasaAnual / 12
+      
+      for (let month = 1; month <= 12; month++) {
+        // Aporte mensual
+        acumuladoNominal += montoNum * (periodosPorAnio === 12 ? 1 : 0)
+        
+        // Aplicar interés
+        if (selectedFrecuencia === "Mensual") {
+          if (selectedMetodo === "Bitcoin") {
+            acumuladoNominal = acumuladoNominal * (1 + tasaMensual)
+          } else if (selectedMetodo === "Cuenta de ahorro") {
+            acumuladoNominal = acumuladoNominal * (1 + tasaMensual)
+          }
+        }
+        
+        // Calcular valor real con inflación mensual
+        const inflacionMensual = Math.pow(1.04, month / 12)
+        const acumuladoReal = selectedMetodo === "Bitcoin" ? 
+                              acumuladoNominal : 
+                              acumuladoNominal / inflacionMensual
+        
+        data.push({
+          ano: `Mes ${month}`,
+          nominal: Math.round(acumuladoNominal),
+          real: Math.round(acumuladoReal)
+        })
+      }
+    } else {
+      // Generar datos anuales para múltiples años
+      for (let i = 1; i <= years; i++) {
+        const anosStr = `${i} año${i === 1 ? '' : 's'}`
+        const nominal = calculateNominalValue(selectedMonto, selectedFrecuencia, anosStr, selectedMetodo, selectedInterest)
+        const real = calculateRealValue(selectedMonto, selectedFrecuencia, anosStr, selectedMetodo, selectedInterest)
+        
+        data.push({
+          ano: `Año ${i}`,
+          nominal: Math.round(nominal),
+          real: Math.round(real)
+        })
+      }
+    }
+    return data
+  }
+
+  const generateFeesData = () => {
+    const years = parseInt(selectedAnos.replace(/\D/g, ''), 10)
+    const anosStr = `${years} año${years === 1 ? '' : 's'}`
+    
+    const efectivoPerdida = Math.round(
+      calculateNominalValue(selectedMonto, selectedFrecuencia, anosStr, "En efectivo", "0%") -
+      calculateRealValue(selectedMonto, selectedFrecuencia, anosStr, "En efectivo", "0%")
+    )
+    
+    const cuentaPerdida = Math.round(
+      calculateNominalValue(selectedMonto, selectedFrecuencia, anosStr, "Cuenta de ahorro", "3%") -
+      calculateRealValue(selectedMonto, selectedFrecuencia, anosStr, "Cuenta de ahorro", "3%")
+    )
+    
+    const bitcoinPerdida = Math.round(
+      calculateNominalValue(selectedMonto, selectedFrecuencia, anosStr, "Bitcoin", "0%") -
+      calculateRealValue(selectedMonto, selectedFrecuencia, anosStr, "Bitcoin", "0%")
+    )
+    
+    return [
+      { metodo: "Efectivo", perdida: efectivoPerdida, fill: "#ef4444" },
+      { metodo: "Cuenta Ahorro", perdida: cuentaPerdida, fill: "#f59e0b" },
+      { metodo: "Bitcoin", perdida: bitcoinPerdida, fill: "#22c55e" },
+    ]
+  }
+
+  const growthData = generateGrowthData()
+  const inflationData = generateInflationData()
+  const feesData = generateFeesData()
+
+  // Datos para comparación con los tres métodos
   const comparisonData = [
-    { metodo: selectedMetodo, aporteTotal: aporteTotal, valorNominal: valorNominal, valorReal: valorReal, perdidaInflacion: perdidaInflacion },
+    { metodo: "En efectivo", aporteTotal: aporteTotal, valorNominal: efectivoNominal, valorReal: efectivoReal, perdidaInflacion: efectivoPerdida },
+    { metodo: "Cuenta de ahorro", aporteTotal: aporteTotal, valorNominal: cuentaAhorroNominal, valorReal: cuentaAhorroReal, perdidaInflacion: cuentaAhorroPerdida },
+    { metodo: "Bitcoin", aporteTotal: aporteTotal, valorNominal: bitcoinNominal, valorReal: bitcoinReal, perdidaInflacion: bitcoinPerdida },
   ]
   return (
     <div className="min-h-screen bg-[#0f172a] relative overflow-hidden">
@@ -245,7 +417,7 @@ export function ResultsDashboardAhorro({
               </div>
               <span className="flex items-center text-xs text-[#22c55e] bg-[#22c55e]/10 px-2 py-1 rounded-full">
                 <ArrowUpRight className="w-3 h-3 mr-1" />
-                Mejor opcion
+                {selectedMetodo}
               </span>
             </div>
             <p className="text-sm text-[#94a3b8] mb-1">Valor final ({selectedMetodo})</p>
@@ -262,11 +434,11 @@ export function ResultsDashboardAhorro({
                 <AlertCircle className="w-6 h-6 text-[#ef4444]" />
               </div>
             </div>
-            <p className="text-sm text-[#94a3b8] mb-1">Pérdida por inflación</p>
-            <p className="text-3xl font-bold text-white mb-2">${perdidaInflacion.toLocaleString()}</p>
-            <p className="text-sm text-[#ef4444] flex items-center">
-              <TrendingDown className="w-4 h-4 mr-1.5" />
-              -{((perdidaInflacion / valorNominal) * 100).toFixed(1)}% del valor nominal
+            <p className="text-sm text-[#94a3b8] mb-1">Mejor método (valor nominal)</p>
+            <p className="text-3xl font-bold text-white mb-2">Bitcoin</p>
+            <p className="text-sm text-[#22c55e] flex items-center">
+              <TrendingUp className="w-4 h-4 mr-1.5" />
+              +${(bitcoinNominal - cuentaAhorroNominal).toLocaleString()} vs Cuenta
             </p>
           </div>
 
@@ -290,11 +462,11 @@ export function ResultsDashboardAhorro({
                 <Trophy className="w-6 h-6 text-[#3b82f6]" />
               </div>
             </div>
-            <p className="text-sm text-[#94a3b8] mb-1">Escenario seleccionado</p>
+            <p className="text-sm text-[#94a3b8] mb-1">Tu selección</p>
             <p className="text-3xl font-bold gradient-text-animated mb-2">{selectedMetodo}</p>
             <p className="text-sm text-[#3b82f6] flex items-center">
               <Trophy className="w-4 h-4 mr-1.5" />
-              Método de ahorro elegido
+              Valor real: ${valorReal.toLocaleString()}
             </p>
           </div>
         </div>
@@ -319,16 +491,21 @@ export function ResultsDashboardAhorro({
                 {comparisonData.map((row) => (
                   <tr 
                     key={row.metodo} 
-                    className="border-t border-[#334155]/30 transition-colors hover:bg-[#0f172a]/20"
+                    className={`border-t border-[#334155]/30 transition-colors ${
+                      row.metodo === selectedMetodo 
+                        ? "bg-[#22c55e]/10 hover:bg-[#22c55e]/15" 
+                        : "hover:bg-[#0f172a]/20"
+                    }`}
                   >
                     <td className="py-5 px-6">
-                      <span className="font-semibold text-white">
+                      <span className={`font-semibold ${row.metodo === selectedMetodo ? "text-[#22c55e]" : "text-white"}`}>
                         {row.metodo}
+                        {row.metodo === selectedMetodo && <span className="ml-2 text-xs bg-[#22c55e] text-[#0f172a] px-2 py-1 rounded-full font-bold">SELECCIONADO</span>}
                       </span>
                     </td>
                     <td className="py-5 px-6 text-white font-medium">${row.aporteTotal.toLocaleString()}</td>
                     <td className="py-5 px-6 text-white font-medium">${row.valorNominal.toLocaleString()}</td>
-                    <td className="py-5 px-6 text-[#22c55e] font-semibold">${row.valorReal.toLocaleString()}</td>
+                    <td className={`py-5 px-6 font-semibold ${row.metodo === selectedMetodo ? "text-[#22c55e]" : "text-white"}`}>${row.valorReal.toLocaleString()}</td>
                     <td className="py-5 px-6 text-[#ef4444] font-medium">${row.perdidaInflacion.toLocaleString()}</td>
                   </tr>
                 ))}
@@ -343,12 +520,13 @@ export function ResultsDashboardAhorro({
           <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 p-6 lg:p-8 rounded-2xl">
             <h3 className="text-lg font-semibold text-white mb-2">Crecimiento acumulado</h3>
             <p className="text-sm text-[#64748b] mb-6">Dinero total en el destino por metodo</p>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={growthData}>
+            <div className="overflow-x-auto pb-2 -mx-6 px-6 lg:-mx-8 lg:px-8">
+              <div className="h-72 min-w-max" style={{ width: '100%', minWidth: 'max(100%, 700px)' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={growthData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis dataKey="mes" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
+                  <XAxis dataKey="periodo" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: '#1e293b', 
@@ -357,14 +535,15 @@ export function ResultsDashboardAhorro({
                       color: '#fff',
                       boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
                     }}
-                    formatter={(value) => [`$${value}`, '']}
+                    formatter={(value) => [`$${value.toLocaleString()}`, '']}
                   />
                   <Legend />
-                  <Line type="monotone" dataKey="banco" stroke="#ef4444" strokeWidth={2.5} name="Banco" dot={false} />
-                  <Line type="monotone" dataKey="remesadora" stroke="#f59e0b" strokeWidth={2.5} name="Remesadora" dot={false} />
+                  <Line type="monotone" dataKey="efectivo" stroke="#ef4444" strokeWidth={2.5} name="Efectivo" dot={false} />
+                  <Line type="monotone" dataKey="cuentaAhorro" stroke="#f59e0b" strokeWidth={2.5} name="Cuenta Ahorro" dot={false} />
                   <Line type="monotone" dataKey="bitcoin" stroke="#22c55e" strokeWidth={2.5} name="Bitcoin" dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
 
@@ -372,9 +551,10 @@ export function ResultsDashboardAhorro({
           <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 p-6 lg:p-8 rounded-2xl">
             <h3 className="text-lg font-semibold text-white mb-2">Poder adquisitivo</h3>
             <p className="text-sm text-[#64748b] mb-6">Valor nominal vs valor real ajustado</p>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={inflationData}>
+            <div className="overflow-x-auto pb-2 -mx-6 px-6 lg:-mx-8 lg:px-8">
+              <div className="h-72 min-w-max" style={{ width: '100%', minWidth: 'max(100%, 700px)' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={inflationData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                   <XAxis dataKey="ano" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
                   <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value/1000}k`} />
@@ -391,21 +571,22 @@ export function ResultsDashboardAhorro({
                   <Legend />
                   <Area type="monotone" dataKey="nominal" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} strokeWidth={2.5} name="Valor nominal" />
                   <Area type="monotone" dataKey="real" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.2} strokeWidth={2.5} name="Valor real" />
-                </AreaChart>
-              </ResponsiveContainer>
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
 
           {/* Fees Comparison */}
           <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 p-6 lg:p-8 rounded-2xl">
-            <h3 className="text-lg font-semibold text-white mb-2">Comisiones totales</h3>
-            <p className="text-sm text-[#64748b] mb-6">Total pagado en comisiones (anual)</p>
+            <h3 className="text-lg font-semibold text-white mb-2">Pérdida por inflación</h3>
+            <p className="text-sm text-[#64748b] mb-6">Total de poder adquisitivo perdido por inflación</p>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={feesData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                  <XAxis type="number" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
-                  <YAxis dataKey="metodo" type="category" stroke="#64748b" fontSize={12} width={90} tickLine={false} axisLine={false} />
+                  <XAxis type="number" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
+                  <YAxis dataKey="metodo" type="category" stroke="#64748b" fontSize={12} width={110} tickLine={false} axisLine={false} />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: '#1e293b', 
@@ -414,9 +595,9 @@ export function ResultsDashboardAhorro({
                       color: '#fff',
                       boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
                     }}
-                    formatter={(value) => [`$${value}`, 'Comision anual']}
+                    formatter={(value) => [`$${value.toLocaleString()}`, 'Pérdida por inflación']}
                   />
-                  <Bar dataKey="comision" radius={[0, 8, 8, 0]} />
+                  <Bar dataKey="perdida" radius={[0, 8, 8, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
