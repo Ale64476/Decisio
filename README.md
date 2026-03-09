@@ -1,7 +1,7 @@
 # Decisio
 
 <p align="center">
-  <b>Visualiza, compara y entiende el verdadero costo de enviar remesas a México.</b>
+  <b>Visualiza, compara y entiende como funciona la Bitcoin en diferentes escenarios en México.</b>
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
 </p>
 
 ---
-En México, millones de familias dependen de las remesas. Aun así, muchas personas no tienen claridad sobre cuánto dinero se pierde realmente entre comisiones, tipos de cambio desfavorables y tiempos de espera.
+En México, millones de familias dependen de las remesas y el ahorro. Aun así, muchas personas no tienen claridad sobre cuánto dinero se pierde realmente entre comisiones, tipos de cambio desfavorables y tiempos de espera.
 
 **Decisio** nace para volver visible ese problema.
 
@@ -48,12 +48,13 @@ Decisio aporta valor porque:
 ## Funcionalidades principales
 
 - Simulación de escenarios de remesas.
+- Simulación de escenarios de ahorro.
 - Comparación entre distintos métodos de envío.
 - Visualización del dinero recibido neto.
 - Análisis de comisiones y costos ocultos.
 - Comparativas claras de tiempo y eficiencia.
 - Visualización del impacto acumulado a lo largo de los años.
-- Interpretación asistida de resultados.
+- Interpretación asistida por IA de resultados.
 
 ## Flujo del producto
 
@@ -215,8 +216,6 @@ A futuro, el proyecto puede crecer con:
 - herramientas orientadas a adopción y comprensión de Bitcoin en contextos reales
 
 ## Demo
-
-Agrega aquí tu enlace cuando lo tengas publicado:
 
 ```text
 https://decisio-1mj5a5prb-al064476-6759s-projects.vercel.app
