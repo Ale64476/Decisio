@@ -12,10 +12,10 @@ import {
   Banknote,
   ArrowRightLeft,
   TrendingUp,
-  ShieldCheck,
-  Network,
-  PackageCheck,
   BadgeDollarSign,
+  Network,
+  ShieldCheck,
+  PackageCheck,
 } from "lucide-react"
 import {
   BarChart,
@@ -102,6 +102,36 @@ const getTransfersPerYear = (frecuencia: string) => {
   return 12
 }
 
+const timelineSteps = [
+  {
+    title: "Origen",
+    description:
+      "La remesa parte desde el país de origen y el valor base se expresa en la moneda local del remitente.",
+    icon: Wallet,
+    color: "#3b82f6",
+  },
+  {
+    title: "Red Bitcoin",
+    description:
+      "El valor se transmite digitalmente a través de la red Bitcoin para evitar el recorrido tradicional de múltiples intermediarios.",
+    icon: Network,
+    color: "#06b6d4",
+  },
+  {
+    title: "Validación",
+    description:
+      "La operación se verifica antes de confirmarse, lo que ayuda a dar seguridad al envío.",
+    icon: ShieldCheck,
+    color: "#f59e0b",
+  },
+  {
+    title: "Destino",
+    description:
+      "Una vez confirmada, la remesa puede recibirse en México y convertirse a pesos mexicanos.",
+    icon: PackageCheck,
+    color: "#22c55e",
+  },
+]
 
 const formatMoney = (value: number, currency: string) => {
   const locale = currency === "MXN" ? "es-MX" : "en-US"
@@ -158,9 +188,6 @@ export function ResultsDashboardRemesas({
     comparisonRows.find((row) => row.metodo === referenceScenario.metodoSeleccionado) ??
     comparisonRows[2]
 
-  const bestReceivedMXN = Math.max(...comparisonRows.map((row) => row.recibidoMXN))
-  const worstReceivedMXN = Math.min(...comparisonRows.map((row) => row.recibidoMXN))
-  const savedVsWorst = bestReceivedMXN - worstReceivedMXN
 
   const buildProjectionForMethod = (row: ComparisonRow, years: number) => {
     const totalTransfers = getTransfersPerYear(referenceScenario.frecuencia) * years
@@ -198,46 +225,50 @@ export function ResultsDashboardRemesas({
   const savedVsBankProjection =
     selectedProjection.totalReceivedMXN - bankProjection.totalReceivedMXN
 
-  
-  // Datos para la gráfica de barras
+  // Datos para las gráficas
+  type ChartBarItem = {
+    metodo: string
+    valor: number
+  }
 
-type ChartBarItem = {
-  metodo: string
-  valor: number
-}
+  type FeesImpactItem = {
+    metodo: string
+    perdidoMXN: number
+  }
 
-type FeesImpactItem = {
-  metodo: string
-  perdidoMXN: number
-}
+  const chartData: ChartBarItem[] = projectionRows.map((row) => ({
+    metodo: row.metodo,
+    valor: row.totalReceivedMXN,
+  }))
 
-const chartData: ChartBarItem[] = projectionRows.map((row) => ({
-  metodo: row.metodo,
-  valor: row.totalReceivedMXN,
-}))
+  const feesImpactData: FeesImpactItem[] = projectionRows.map((row) => ({
+    metodo: row.metodo,
+    perdidoMXN: row.totalFees * referenceScenario.tipoCambioReferencia,
+  }))
 
-const maxProjectionRows = comparisonRows.map((row) =>
-  buildProjectionForMethod(row, 10)
-)
+  const visibleChartData: ChartBarItem[] =
+    chartViewMode === "comparativa"
+      ? chartData
+      : chartData.filter((item) => item.metodo === referenceScenario.metodoSeleccionado)
 
-const maxReceivedMXN = Math.max(
-  ...maxProjectionRows.map((row) => row.totalReceivedMXN)
-)
+  const visibleFeesImpactData: FeesImpactItem[] =
+    chartViewMode === "comparativa"
+      ? feesImpactData
+      : feesImpactData.filter((item) => item.metodo === referenceScenario.metodoSeleccionado)
 
-const feesImpactData: FeesImpactItem[] = projectionRows.map((row) => ({
-  metodo: row.metodo,
-  perdidoMXN: row.totalFees * referenceScenario.tipoCambioReferencia,
-}))
+  const topProjection = [...projectionRows].sort((a, b) => b.totalReceivedMXN - a.totalReceivedMXN)[0]
+  const topFeesLoss = [...feesImpactData].sort((a, b) => b.perdidoMXN - a.perdidoMXN)[0]
 
-const visibleChartData: ChartBarItem[] =
-  chartViewMode === "comparativa"
-    ? chartData
-    : chartData.filter((item) => item.metodo === referenceScenario.metodoSeleccionado)
+  const projectionInsight =
+    chartViewMode === "comparativa"
+      ? `${topProjection.metodo} proyecta la mayor recepción acumulada en ${projectionYears} ${projectionYears === 1 ? "año" : "años"}.`
+      : `${referenceScenario.metodoSeleccionado} muestra cuánto podría recibirse al cierre del horizonte seleccionado.`
 
-const visibleFeesImpactData: FeesImpactItem[] =
-  chartViewMode === "comparativa"
-    ? feesImpactData
-    : feesImpactData.filter((item) => item.metodo === referenceScenario.metodoSeleccionado)
+  const feesInsight =
+    chartViewMode === "comparativa"
+      ? `${topFeesLoss.metodo} acumula la mayor pérdida estimada en comisiones en este horizonte.`
+      : `${referenceScenario.metodoSeleccionado} concentra aquí la pérdida total estimada en comisiones del periodo.`
+
   return (
     <div className="min-h-screen bg-[#0f172a] relative overflow-hidden">
       <div className="fixed inset-0 grid-pattern pointer-events-none" />
@@ -510,11 +541,9 @@ const visibleFeesImpactData: FeesImpactItem[] =
             <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-[#334155]/40 rounded-2xl p-6 shadow-xl shadow-black/10">
               <div className="flex items-start justify-between gap-4 mb-5">
                 <div>
-                  <h3 className="text-xl font-semibold text-white">Proyección acumulada</h3>
+                  <h3 className="text-xl font-semibold text-white">Análisis acumulado</h3>
                   <p className="text-sm text-[#94a3b8] mt-1">
-                    Impacto estimado de una remesa {referenceScenario.frecuencia.toLowerCase()} de{" "}
-                    {formatMoney(referenceScenario.montoBase, referenceScenario.monedaOrigen)} durante{" "}
-                    {projectionYears} {projectionYears === 1 ? "año" : "años"}.
+                    Ajusta el horizonte y el modo de visualización para explorar el impacto estimado de la remesa.
                   </p>
                 </div>
                 <div className="px-3 py-1.5 rounded-full bg-[#0f172a]/80 border border-[#334155]/40 text-xs font-medium text-[#cbd5e1]">
@@ -522,55 +551,75 @@ const visibleFeesImpactData: FeesImpactItem[] =
                 </div>
               </div>
 
-              <div className="mb-2">
-                <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  value={projectionYears}
-                  onChange={(e) => setProjectionYears(Number(e.target.value))}
-                  className="w-full accent-[#f7931a]"
-                />
-                <div className="flex justify-between text-[11px] text-[#64748b] mt-2">
-                  <span>1 año</span>
-                  <span>10 años</span>
+              <div className="space-y-5">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-medium text-white">Horizonte de proyección</p>
+                    <p className="text-xs text-[#64748b]">
+                      Remesa {referenceScenario.frecuencia.toLowerCase()} de{" "}
+                      {formatMoney(referenceScenario.montoBase, referenceScenario.monedaOrigen)}
+                    </p>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={projectionYears}
+                    onChange={(e) => setProjectionYears(Number(e.target.value))}
+                    className="w-full accent-[#f7931a]"
+                  />
+                  <div className="flex justify-between text-[11px] text-[#64748b] mt-2">
+                    <span>1 año</span>
+                    <span>10 años</span>
+                  </div>
                 </div>
-              </div>
-            </div>
-                    
-            <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl p-3 shadow-lg shadow-[#1e293b]/50">
-              <div className="inline-flex bg-[#0f172a]/70 border border-[#334155]/50 rounded-xl p-1 gap-1">
-                <button
-                  onClick={() => setChartViewMode("comparativa")}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                    chartViewMode === "comparativa"
-                      ? "bg-[#3b82f6] text-white shadow-md"
-                      : "text-[#94a3b8] hover:text-white hover:bg-[#1e293b]"
-                  }`}
-                >
-                  Comparativa
-                </button>
 
-                <button
-                  onClick={() => setChartViewMode("individual")}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                    chartViewMode === "individual"
-                      ? "bg-[#8b5cf6] text-white shadow-md"
-                      : "text-[#94a3b8] hover:text-white hover:bg-[#1e293b]"
-                  }`}
-                >
-                  Solo {referenceScenario.metodoSeleccionado}
-                </button>
+                <div>
+                  <p className="text-sm font-medium text-white mb-3">Modo de visualización</p>
+                  <div className="inline-flex bg-[#0f172a]/70 border border-[#334155]/50 rounded-xl p-1 gap-1">
+                    <button
+                      onClick={() => setChartViewMode("comparativa")}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                        chartViewMode === "comparativa"
+                          ? "bg-[#3b82f6] text-white shadow-md"
+                          : "text-[#94a3b8] hover:text-white hover:bg-[#1e293b]"
+                      }`}
+                    >
+                      Comparativa
+                    </button>
+
+                    <button
+                      onClick={() => setChartViewMode("individual")}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                        chartViewMode === "individual"
+                          ? "bg-[#8b5cf6] text-white shadow-md"
+                          : "text-[#94a3b8] hover:text-white hover:bg-[#1e293b]"
+                      }`}
+                    >
+                      Solo {referenceScenario.metodoSeleccionado}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
             <div className="bg-[#0f172a]/40 border border-[#334155]/30 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">
-                Total recibido acumulado
-              </h3>
-              <p className="text-sm text-[#94a3b8] mb-4">
-                Comparación del total estimado que llegaría a México al cierre del horizonte seleccionado.
-              </p>
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Total recibido acumulado</h3>
+                  <p className="text-sm text-[#94a3b8] mt-1">
+                    Comparación del total estimado que llegaría a México al cierre del horizonte seleccionado.
+                  </p>
+                </div>
+                <div className="px-3 py-1 rounded-full bg-[#3b82f6]/10 border border-[#3b82f6]/20 text-xs font-medium text-[#93c5fd]">
+                  Valor neto
+                </div>
+              </div>
+
+              <div className="mb-4 p-3 rounded-xl bg-[#0f172a]/70 border border-[#334155]/30">
+                <p className="text-sm text-[#cbd5e1] leading-relaxed">{projectionInsight}</p>
+              </div>
+
               <div className="h-[260px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
@@ -579,22 +628,16 @@ const visibleFeesImpactData: FeesImpactItem[] =
                     barCategoryGap="35%"
                   >
                     <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
-
-                    <XAxis
-                      dataKey="metodo"
-                      stroke="#94a3b8"
-                    />
-
+                    <XAxis dataKey="metodo" stroke="#94a3b8" />
                     <YAxis
                       stroke="#94a3b8"
-                      domain={[0, 'dataMax + 50000']}
+                      domain={[0, "dataMax + 50000"]}
                       tickFormatter={(value) => {
                         if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
                         if (value >= 1000) return `${(value / 1000).toFixed(0)}k`
                         return String(value)
                       }}
                     />
-
                     <Tooltip
                       formatter={(value: number) =>
                         new Intl.NumberFormat("es-MX", {
@@ -604,7 +647,6 @@ const visibleFeesImpactData: FeesImpactItem[] =
                         }).format(value)
                       }
                     />
-
                     <Bar
                       dataKey="valor"
                       radius={[6, 6, 0, 0]}
@@ -622,7 +664,6 @@ const visibleFeesImpactData: FeesImpactItem[] =
                           }).format(value)
                         }
                       />
-
                       {visibleChartData.map((entry: ChartBarItem, index: number) => {
                         const fill =
                           entry.metodo === "Banco"
@@ -637,23 +678,28 @@ const visibleFeesImpactData: FeesImpactItem[] =
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-              <p className="text-xs text-[#94a3b8] mt-4 leading-relaxed">
-                Horizonte actual: {projectionYears} {projectionYears === 1 ? "año" : "años"}.
-                Cada barra representa el total acumulado estimado por método al cierre del periodo seleccionado.
-              </p>
             </div>
 
             <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl p-6 shadow-lg shadow-[#1e293b]/50">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#ef4444]/20 to-[#ef4444]/5 border border-[#ef4444]/20 flex items-center justify-center">
-                  <BadgeDollarSign className="w-5 h-5 text-[#ef4444]" />
+              <div className="flex items-center justify-between gap-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#ef4444]/20 to-[#ef4444]/5 border border-[#ef4444]/20 flex items-center justify-center">
+                    <BadgeDollarSign className="w-5 h-5 text-[#ef4444]" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">Dinero perdido en comisiones</h3>
+                    <p className="text-sm text-[#94a3b8]">
+                      Comparación del costo total estimado por método al cierre del horizonte seleccionado.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-white">Dinero perdido en comisiones</h3>
-                  <p className="text-sm text-[#94a3b8]">
-                    Comparación del costo total estimado por método al cierre del horizonte seleccionado.
-                  </p>
+                <div className="px-3 py-1 rounded-full bg-[#ef4444]/10 border border-[#ef4444]/20 text-xs font-medium text-[#fca5a5]">
+                  Costo acumulado
                 </div>
+              </div>
+
+              <div className="mb-4 p-3 rounded-xl bg-[#0f172a]/70 border border-[#334155]/30">
+                <p className="text-sm text-[#cbd5e1] leading-relaxed">{feesInsight}</p>
               </div>
 
               <div className="h-[280px]">
@@ -720,11 +766,6 @@ const visibleFeesImpactData: FeesImpactItem[] =
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-
-              <p className="text-xs text-[#94a3b8] mt-4 leading-relaxed">
-                A mayor barra, mayor dinero perdido en comisiones durante{" "}
-                {projectionYears} {projectionYears === 1 ? "año" : "años"}.
-              </p>
             </div>
           </div>
         </section>
