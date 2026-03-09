@@ -173,33 +173,41 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
   }
 
   const handleRunSimulation = () => {
-    setIsSimulating(true)
-    setSimulationFinished(false)
-    setCompletedSteps([])
+  if (!educativeMode) {
+    setIsSimulating(false)
+    setSimulationFinished(true)
     setActiveStep(null)
-
-    let stepIndex = 0
-    const stepIds = transactionSteps.map((s) => s.id)
-
-    const simulateNextStep = () => {
-      if (stepIndex < stepIds.length) {
-        const currentStep = stepIds[stepIndex]
-        setActiveStep(currentStep)
-
-        setTimeout(() => {
-          setCompletedSteps((prev) => [...prev, currentStep])
-          stepIndex++
-          simulateNextStep()
-        }, educativeMode ? 2600 : 1400)
-      } else {
-        setIsSimulating(false)
-        setSimulationFinished(true)
-        setActiveStep(null)
-      }
-    }
-
-    simulateNextStep()
+    setCompletedSteps(transactionSteps.map((step) => step.id))
+    return
   }
+
+  setIsSimulating(true)
+  setSimulationFinished(false)
+  setCompletedSteps([])
+  setActiveStep(null)
+
+  let stepIndex = 0
+  const stepIds = transactionSteps.map((s) => s.id)
+
+  const simulateNextStep = () => {
+    if (stepIndex < stepIds.length) {
+      const currentStep = stepIds[stepIndex]
+      setActiveStep(currentStep)
+
+      setTimeout(() => {
+        setCompletedSteps((prev) => [...prev, currentStep])
+        stepIndex++
+        simulateNextStep()
+      }, 2600)
+    } else {
+      setIsSimulating(false)
+      setSimulationFinished(true)
+      setActiveStep(null)
+    }
+  }
+
+  simulateNextStep()
+}
 
   const handleViewResults = () => {
     const montoNumerico = getMontoNumber(selectedMonto)
@@ -483,7 +491,17 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
                 className="btn-shine w-full bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:opacity-90 text-white py-7 text-base font-semibold rounded-xl shadow-xl shadow-[#3b82f6]/30 transition-all hover:shadow-2xl hover:shadow-[#8b5cf6]/40 disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 <Play className="mr-2.5 w-5 h-5" />
-                {isSimulating ? "Simulando..." : simulationFinished ? "Ejecutar de nuevo" : "Ejecutar simulación"}
+                {isSimulating
+                  ? educativeMode
+                    ? "Simulando..."
+                    : "Calculando..."
+                  : simulationFinished
+                    ? educativeMode
+                      ? "Ejecutar de nuevo"
+                      : "Calcular de nuevo"
+                    : educativeMode
+                      ? "Ejecutar simulación"
+                      : "Calcular resultado"}
               </Button>
             </div>
           </div>
@@ -499,7 +517,11 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-white">Resumen del envío</h2>
-                    <p className="text-xs text-[#22c55e]">Simulación completada · Resultado rápido del método seleccionado</p>
+                    <p className="text-xs text-[#22c55e]">
+                      {educativeMode
+                        ? "Simulación completada · Resultado rápido del método seleccionado"
+                        : "Resultado calculado · Puedes revisar los detalles del envío"}
+                    </p>
                   </div>
                 </div>
 
@@ -527,7 +549,9 @@ export function SimulatorPanelRemesas({ scenario: _scenario, onBack, onViewResul
                   <p className="text-sm font-semibold text-white">Estado actual de la remesa</p>
                 </div>
                 <p className="text-sm text-[#cbd5e1] leading-relaxed">
-                  Simulación finalizada. Ya puedes revisar el recorrido completo o abrir el panel de resultados detallados.
+                  {educativeMode
+                    ? "Simulación finalizada. Ya puedes revisar el recorrido completo o abrir el panel de resultados detallados."
+                    : "El cálculo del envío terminó correctamente. Puedes abrir el panel de resultados detallados."}
                 </p>
                 <div className="mt-5">
                   <Button
