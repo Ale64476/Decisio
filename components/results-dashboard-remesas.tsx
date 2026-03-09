@@ -294,7 +294,7 @@ export function ResultsDashboardRemesas({
           comision: selectedProjection.totalFees,
           tiempo: comparisonRows.find(
             (row) => row.metodo === referenceScenario.metodoSeleccionado
-          )?.estimatedTime ?? "No especificado",
+          )?.tiempo ?? "No especificado",
         },
       }),
     })
