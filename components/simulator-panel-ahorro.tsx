@@ -25,6 +25,121 @@ type TransactionStep = {
   color: string
 }
 
+const calculateTotalContribution = (monto: string, frecuencia: string, periodo: string): number => {
+  const montoNum = parseInt(monto.replace(/[^\d]/g, ''))
+  const periodoNum = parseInt(periodo.replace(/\D/g, ''))
+
+  let frecuenciaNum: number
+  switch (frecuencia) {
+    case "Unica vez":
+      return montoNum
+    case "Mensual":
+      frecuenciaNum = 12
+      break
+    case "Semanal":
+      frecuenciaNum = 52
+      break
+    case "Quincenal":
+      frecuenciaNum = 24
+      break
+    default:
+      frecuenciaNum = 1
+  }
+
+  return montoNum * frecuenciaNum * periodoNum
+}
+
+/**
+ * Calcula el valor nominal aplicando interés compuesto según frecuencia.
+ * - efectivo: sin rendimientos
+ * - cuenta de ahorro: tasa seleccionada compuesta según la frecuencia
+ * - bitcoin: rendimiento promedio 20% anual compuesto
+ *
+ * La fórmula usada es la del valor futuro de una anualidad ordinaria:
+ *   FV = P * [((1 + r)^n - 1) / r]
+ * donde P es el monto por periodo, r la tasa por periodo y n el número de
+ * periodos totales. Para "Unica vez" se utiliza la fórmula de un solo depósito:
+ *   FV = P * (1 + r)^{years}
+ */
+const calculateNominalValue = (
+  monto: string,
+  frecuencia: string,
+  periodo: string,
+  metodo: string,
+  interest: string
+): number => {
+  const montoNum = parseInt(monto.replace(/[^\d]/g, ''), 10)
+  const years = parseInt(periodo.replace(/\D/g, ''), 10)
+
+  let periodsPerYear = 1
+  switch (frecuencia) {
+    case "Mensual":
+      periodsPerYear = 12
+      break
+    case "Semanal":
+      periodsPerYear = 52
+      break
+    case "Quincenal":
+      periodsPerYear = 24
+      break
+    case "Unica vez":
+    default:
+      periodsPerYear = 1
+  }
+
+  const totalPeriods = years * periodsPerYear
+
+  let annualRate = 0
+  if (metodo === "Cuenta de ahorro") {
+    // interest comes like "3%" or similar
+    annualRate = parseFloat(interest.replace("%", "")) / 100
+  } else if (metodo === "Bitcoin") {
+    annualRate = 0.20
+  } else {
+    annualRate = 0
+  }
+
+  // sin rendimientos
+  if (annualRate <= 0 || metodo === "En efectivo") {
+    return montoNum * totalPeriods
+  }
+
+  const ratePerPeriod = annualRate / periodsPerYear
+
+  if (frecuencia === "Unica vez") {
+    // un solo depósito compuesto durante los años
+    return montoNum * Math.pow(1 + ratePerPeriod, totalPeriods)
+  }
+
+  // anualidad ordinaria
+  return montoNum * ((Math.pow(1 + ratePerPeriod, totalPeriods) - 1) / ratePerPeriod)
+}
+
+/**
+ * Calcula el valor real ajustando el valor nominal por inflación.
+ * - Bitcoin: no se ve afectado por la inflación del peso mexicano (valor real = valor nominal)
+ * - Otros métodos: valor real = valor nominal / (1 + 0.04)^años
+ */
+const calculateRealValue = (
+  monto: string,
+  frecuencia: string,
+  periodo: string,
+  metodo: string,
+  interest: string
+): number => {
+  const nominalValue = calculateNominalValue(monto, frecuencia, periodo, metodo, interest)
+  const years = parseInt(periodo.replace(/\D/g, ''), 10)
+
+  if (metodo === "Bitcoin") {
+    // Bitcoin no se ve afectado por la inflación del peso mexicano
+    return nominalValue
+  }
+
+  // Ajuste por inflación del 4% anual
+  const inflationRate = 0.04
+  return nominalValue / Math.pow(1 + inflationRate, years)
+}
+
 
 
 export function SimulatorPanelAhorro({ scenario, onBack, onViewResults }: SimulatorPanelProps) {
@@ -351,7 +466,7 @@ switch (selectedMetodo) {
                   <div className="w-8 h-8 rounded-lg bg-[#22c55e]/10 border border-[#22c55e]/20 flex items-center justify-center">
                     <span className="text-sm font-bold text-[#22c55e]">T</span>
                   </div>
-                  <label className="text-sm font-semibold text-[#f8fafc]">Período de comparación</label>
+                  <label className="text-sm font-semibold text-[#f8fafc]">Período de ahorro</label>
                 </div>
                 <div className="flex flex-wrap gap-2.5">
                   {yearsOptions.map((option) => (
@@ -407,7 +522,15 @@ switch (selectedMetodo) {
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-white">Proceso de ahorro</h2>
-                <p className="text-xs text-[#64748b]">Blockchain: Wallet → Red → Mempool → Minería → Bloque → Confirmación</p>
+                {selectedMetodo === "Bitcoin" && (
+                  <p className="font-semibold"><span className="text-[#fbbf24]">Blockchain: </span> <span className="text-[#22c55e]">Wallet → Red → Mempool → Minería → Bloque → Confirmación</span></p>
+                )}
+                {selectedMetodo === "Cuenta de ahorro" && (
+                  <p className="font-semibold"><span className="text-[#fbbf24]">Banco: </span> <span className="text-[#22c55e]">Apertura → Depósito → Rendimientos → Inflación</span></p>
+                )}
+                {selectedMetodo === "En efectivo" && (
+                <p className="font-semibold"><span className="text-[#fbbf24] ">Dinero fiat:</span> <span className="text-[#22c55e]"> Colchón → Confirmación → Inflación</span></p>
+                )}
               </div>
             </div>
 
@@ -535,12 +658,12 @@ switch (selectedMetodo) {
 
                       <div className="flex-1 pt-1">
                         <p className="text-sm font-bold text-[#3b82f6] mb-2">Decisio</p>
-                        <p className="text-[#cbd5e1] text-sm leading-relaxed">
+                        <p className={`text-sm leading-relaxed ${isSimulating || simulationFinished ? 'text-[#06b6d4] font-semibold' : 'text-[#cbd5e1]'}`}>
                           {isSimulating
                             ? getCurrentStepDescription()
-                            : simulationFinished
-                              ? "La simulación ha finalizado. Puedes revisar el recorrido completo o abrir el panel de resultados detallados."
-                              : "Los parámetros que seleccionas determinan cómo crecería tu ahorro con aportaciones periódicas. Bitcoin puede ofrecer alto potencial de apreciación, aunque con variaciones de precio."}
+                            : getCurrentStepDescription()
+                            
+                              }
                         </p>
                       </div>
                     </div>
@@ -569,32 +692,32 @@ switch (selectedMetodo) {
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-6">
-              {/* Monto Enviado */}
+              {/* Aporte total */}
               <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
-                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Monto enviado</p>
-                <p className="text-2xl font-bold text-white mb-1">{selectedMonto}</p>
-                <p className="text-xs text-[#64748b]">Cantidad original</p>
+                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Aporte total</p>
+                <p className="text-2xl font-bold text-white mb-1">${calculateTotalContribution(selectedMonto, selectedFrecuencia, selectedAnos).toLocaleString()}</p>
+                <p className="text-xs text-[#64748b]">Total acumulado</p>
               </div>
 
-              {/* Comisión */}
+              {/* Valor nominal */}
               <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
-                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Comisión estimada</p>
-                <p className="text-2xl font-bold text-[#f59e0b]">${estimatedFee.toFixed(2)}</p>
-                <p className="text-xs text-[#64748b]">({((estimatedFee / getMontoNumber(selectedMonto)) * 100).toFixed(2)}%)</p>
+                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Valor nominal</p>
+                <p className="text-2xl font-bold text-[#f59e0b]">${calculateNominalValue(selectedMonto, selectedFrecuencia, selectedAnos, selectedMetodo, selectedInterest).toLocaleString()}</p>
+                <p className="text-xs text-[#64748b]">Total + rendimientos</p>
               </div>
 
-              {/* Monto Recibido */}
+              {/* Perdida por inflacion*/}
               <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
-                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Monto recibido</p>
-                <p className="text-2xl font-bold text-[#22c55e]">${estimatedReceived.toFixed(2)}</p>
-                <p className="text-xs text-[#64748b]">Después de comisiones</p>
+                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Perdida por inflación del peso Mexicano</p>
+                <p className="text-2xl font-bold text-[#22c55e]">${(calculateNominalValue(selectedMonto, selectedFrecuencia, selectedAnos, selectedMetodo, selectedInterest) - calculateRealValue(selectedMonto, selectedFrecuencia, selectedAnos, selectedMetodo, selectedInterest)).toLocaleString()}</p>
+                <p className="text-xs text-[#64748b]">Valor perdido por inflación</p>
               </div>
 
-              {/* Tiempo Estimado */}
+              {/* Valor real */}
               <div className="bg-gradient-to-br from-[#0f172a]/80 to-[#1e293b]/40 border border-[#334155]/30 p-6 rounded-xl">
-                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Tiempo estimado</p>
-                <p className="text-2xl font-bold text-[#3b82f6]">{estimatedTime}</p>
-                <p className="text-xs text-[#64748b]">{selectedMetodo}</p>
+                <p className="text-xs font-semibold text-[#94a3b8] mb-3">Valor real</p>
+                <p className="text-2xl font-bold text-[#3b82f6]">${calculateRealValue(selectedMonto, selectedFrecuencia, selectedAnos, selectedMetodo, selectedInterest).toLocaleString()}</p>
+                <p className="text-xs text-[#64748b]">Ajustado por inflación</p>
               </div>
             </div>
 
