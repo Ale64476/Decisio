@@ -515,7 +515,7 @@ export function ResultsDashboardRemesas({
                   </tbody>
                 </table>
               </div>
-
+                    {/*decisio interpretacion*/}
               <section className="grid xl:grid-cols-[0.9fr_1.1fr] gap-6">
                 <div className="glow-blue bg-gradient-to-br from-[#1e293b] via-[#1e293b]/80 to-[#0f172a] border border-[#334155]/50 p-6 lg:p-8 rounded-2xl flex flex-col">
                   <div className="flex items-start gap-5 mb-6">
@@ -562,6 +562,175 @@ export function ResultsDashboardRemesas({
                   </Button>
                 </div>
               </section>
+              <div className="space-y-6">
+                {/* Gráfica de barras para comparación acumulada */}
+                <div className="mt-8 bg-[#0f172a]/40 border border-[#334155]/30 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4">
+                  Total recibido acumulado
+                  </h3>
+                  <p className="text-sm text-[#94a3b8] mb-4">
+                    Comparación del total estimado que llegaría a México al cierre del horizonte seleccionado.
+                  </p>
+                  <div className="h-[260px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={chartData}
+                          margin={{ top: 20, right: 20, left: 10, bottom: 10 }}
+                          barCategoryGap="35%"
+                        >
+                          <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
+
+                          <XAxis
+                            dataKey="metodo"
+                            stroke="#94a3b8"
+                          />
+
+                          <YAxis
+                            stroke="#94a3b8"
+                            domain={[0, maxReceivedMXN * 1.08]}
+                            tickFormatter={(value) => {
+                              if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
+                              if (value >= 1000) return `${(value / 1000).toFixed(0)}k`
+                              return String(value)
+                            }}
+                          />
+
+                          <Tooltip
+                            formatter={(value: number) =>
+                              new Intl.NumberFormat("es-MX", {
+                                style: "currency",
+                                currency: "MXN",
+                                maximumFractionDigits: 0,
+                              }).format(value)
+                            }
+                          />
+
+                          <Bar 
+                            dataKey="valor" 
+                            radius={[6, 6, 0, 0]}
+                            animationDuration={500}
+                            animationEasing="ease-out"
+
+                            
+                          >
+                          <LabelList
+                            dataKey="valor"
+                            position="top"
+                            formatter={(value: number) =>
+                              new Intl.NumberFormat("es-MX", {
+                                style: "currency",
+                                currency: "MXN",
+                                maximumFractionDigits: 0,
+                              }).format(value)
+                            }
+                          />  
+
+                            {chartData.map((entry, index) => {
+                              const fill =
+                                entry.metodo === "Banco"
+                                  ? "#ef4444"
+                                  : entry.metodo === "Remesadora"
+                                    ? "#f59e0b"
+                                    : "#f7931a"
+
+                              return <Cell key={`cell-${index}`} fill={fill} />
+
+                          })}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                  </div>
+                    <p className="text-xs text-[#94a3b8] mt-4 leading-relaxed">
+                      Horizonte actual: {projectionYears} {projectionYears === 1 ? "año" : "años"}.
+                      Cada barra representa el total acumulado estimado por método al cierre del periodo seleccionado.
+                    </p>
+                </div>
+
+                {/* Gráfica horizontal de pérdidas acumuladas */}
+                  <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl p-6 shadow-lg shadow-[#1e293b]/50">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#ef4444]/20 to-[#ef4444]/5 border border-[#ef4444]/20 flex items-center justify-center">
+                        <BadgeDollarSign className="w-5 h-5 text-[#ef4444]" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">Dinero perdido en comisiones</h3>
+                        <p className="text-sm text-[#94a3b8]">
+                          Comparación del costo total estimado por método al cierre del horizonte seleccionado.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="h-[280px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={feesImpactData}
+                          layout="vertical"
+                          margin={{ top: 10, right: 30, left: 20, bottom: 10 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
+                          <XAxis
+                            type="number"
+                            stroke="#94a3b8"
+                            tickFormatter={(value) => {
+                              if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
+                              if (value >= 1000) return `${(value / 1000).toFixed(0)}k`
+                              return String(value)
+                            }}
+                          />
+                          <YAxis
+                            type="category"
+                            dataKey="metodo"
+                            stroke="#94a3b8"
+                            width={100}
+                          />
+                          <Tooltip
+                            cursor={{ fill: "rgba(148, 163, 184, 0.08)" }}
+                            contentStyle={{
+                              backgroundColor: "#0f172a",
+                              border: "1px solid #334155",
+                              borderRadius: "12px",
+                              color: "#fff",
+                            }}
+                            formatter={(value: number) => [formatMoney(value, "MXN"), "Pérdida estimada"]}
+                          />
+                          <Bar
+                            dataKey="perdidoMXN"
+                            radius={[0, 8, 8, 0]}
+                            animationDuration={500}
+                            animationEasing="ease-out"
+                          >
+                            <LabelList
+                              dataKey="perdidoMXN"
+                              position="right"
+                              formatter={(value: number) =>
+                                new Intl.NumberFormat("es-MX", {
+                                  style: "currency",
+                                  currency: "MXN",
+                                  maximumFractionDigits: 0,
+                                }).format(value)
+                              }
+                            />
+                            {feesImpactData.map((entry, index) => {
+                              const fill =
+                                entry.metodo === "Banco"
+                                  ? "#ef4444"
+                                  : entry.metodo === "Remesadora"
+                                    ? "#f59e0b"
+                                    : "#f7931a"
+
+                              return <Cell key={`fees-cell-${index}`} fill={fill} />
+                            })}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <p className="text-xs text-[#94a3b8] mt-4 leading-relaxed">
+                      A mayor barra, mayor dinero perdido en comisiones durante{" "}
+                      {projectionYears} {projectionYears === 1 ? "año" : "años"}.
+                    </p>
+                  </div>
+              </div>
             </div>  
           </div>
           
@@ -579,176 +748,8 @@ export function ResultsDashboardRemesas({
                     Horizonte: {projectionYears} {projectionYears === 1 ? "año" : "años"}
                 </div>
             </div>
-
-            {/* Gráfica de barras para comparación acumulada */}
-            <div className="mt-8 bg-[#0f172a]/40 border border-[#334155]/30 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">
-               Total recibido acumulado
-              </h3>
-              <p className="text-sm text-[#94a3b8] mb-4">
-                Comparación del total estimado que llegaría a México al cierre del horizonte seleccionado.
-              </p>
-              <div className="h-[260px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={chartData}
-                      margin={{ top: 20, right: 20, left: 10, bottom: 10 }}
-                      barCategoryGap="35%"
-                    >
-                      <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
-
-                      <XAxis
-                        dataKey="metodo"
-                        stroke="#94a3b8"
-                      />
-
-                      <YAxis
-                        stroke="#94a3b8"
-                        domain={[0, maxReceivedMXN * 1.08]}
-                        tickFormatter={(value) => {
-                          if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
-                          if (value >= 1000) return `${(value / 1000).toFixed(0)}k`
-                          return String(value)
-                        }}
-                      />
-
-                      <Tooltip
-                        formatter={(value: number) =>
-                          new Intl.NumberFormat("es-MX", {
-                            style: "currency",
-                            currency: "MXN",
-                            maximumFractionDigits: 0,
-                          }).format(value)
-                        }
-                      />
-
-                      <Bar 
-                        dataKey="valor" 
-                        radius={[6, 6, 0, 0]}
-                        animationDuration={500}
-                        animationEasing="ease-out"
-
-                        
-                      >
-                      <LabelList
-                        dataKey="valor"
-                        position="top"
-                        formatter={(value: number) =>
-                          new Intl.NumberFormat("es-MX", {
-                            style: "currency",
-                            currency: "MXN",
-                            maximumFractionDigits: 0,
-                          }).format(value)
-                        }
-                      />  
-
-                        {chartData.map((entry, index) => {
-                          const fill =
-                            entry.metodo === "Banco"
-                              ? "#ef4444"
-                              : entry.metodo === "Remesadora"
-                                ? "#f59e0b"
-                                : "#f7931a"
-
-                          return <Cell key={`cell-${index}`} fill={fill} />
-
-                       })}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-              </div>
-                <p className="text-xs text-[#94a3b8] mt-4 leading-relaxed">
-                  Horizonte actual: {projectionYears} {projectionYears === 1 ? "año" : "años"}.
-                  Cada barra representa el total acumulado estimado por método al cierre del periodo seleccionado.
-                </p>
-            </div>
-
-            {/* Gráfica horizontal de pérdidas acumuladas */}
-              <div className="bg-gradient-to-br from-[#1e293b] to-[#1e293b]/60 border border-[#334155]/50 rounded-2xl p-6 shadow-lg shadow-[#1e293b]/50">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#ef4444]/20 to-[#ef4444]/5 border border-[#ef4444]/20 flex items-center justify-center">
-                    <BadgeDollarSign className="w-5 h-5 text-[#ef4444]" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">Dinero perdido en comisiones</h3>
-                    <p className="text-sm text-[#94a3b8]">
-                      Comparación del costo total estimado por método al cierre del horizonte seleccionado.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="h-[280px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={feesImpactData}
-                      layout="vertical"
-                      margin={{ top: 10, right: 30, left: 20, bottom: 10 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                      <XAxis
-                        type="number"
-                        stroke="#94a3b8"
-                        tickFormatter={(value) => {
-                          if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
-                          if (value >= 1000) return `${(value / 1000).toFixed(0)}k`
-                          return String(value)
-                        }}
-                      />
-                      <YAxis
-                        type="category"
-                        dataKey="metodo"
-                        stroke="#94a3b8"
-                        width={100}
-                      />
-                      <Tooltip
-                        cursor={{ fill: "rgba(148, 163, 184, 0.08)" }}
-                        contentStyle={{
-                          backgroundColor: "#0f172a",
-                          border: "1px solid #334155",
-                          borderRadius: "12px",
-                          color: "#fff",
-                        }}
-                        formatter={(value: number) => [formatMoney(value, "MXN"), "Pérdida estimada"]}
-                      />
-                      <Bar
-                        dataKey="perdidoMXN"
-                        radius={[0, 8, 8, 0]}
-                        animationDuration={500}
-                        animationEasing="ease-out"
-                      >
-                        <LabelList
-                          dataKey="perdidoMXN"
-                          position="right"
-                          formatter={(value: number) =>
-                            new Intl.NumberFormat("es-MX", {
-                              style: "currency",
-                              currency: "MXN",
-                              maximumFractionDigits: 0,
-                            }).format(value)
-                          }
-                        />
-                        {feesImpactData.map((entry, index) => {
-                          const fill =
-                            entry.metodo === "Banco"
-                              ? "#ef4444"
-                              : entry.metodo === "Remesadora"
-                                ? "#f59e0b"
-                                : "#f7931a"
-
-                          return <Cell key={`fees-cell-${index}`} fill={fill} />
-                        })}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <p className="text-xs text-[#94a3b8] mt-4 leading-relaxed">
-                  A mayor barra, mayor dinero perdido en comisiones durante{" "}
-                  {projectionYears} {projectionYears === 1 ? "año" : "años"}.
-                </p>
-              </div>
-                      
-                      {/* Proyección acumulada con slider */}
+         
+            {/* Proyección acumulada con slider */}
 
             <div className="mb-6">
                 <input
