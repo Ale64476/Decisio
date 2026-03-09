@@ -1,33 +1,40 @@
-"use client"
+import ResultadosRemesasClient from "./ResultadosRemesasClient"
 
-import { useRouter, useSearchParams } from "next/navigation"
-import { ResultsDashboardRemesas } from "@/components/results-dashboard-remesas"
+type PageProps = {
+  searchParams: Promise<{
+    metodo?: string
+    origen?: string
+    destino?: string
+    monto?: string
+    frecuencia?: string
+    monedaOrigen?: string
+    monedaDestino?: string
+    tipoCambio?: string
+  }>
+}
 
-export default function ResultadosRemesasPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
+export default async function ResultadosRemesasPage({ searchParams }: PageProps) {
+  const params = await searchParams
 
-  const metodo = searchParams.get("metodo") || "Bitcoin"
-  const origen = searchParams.get("origen") || "Estados Unidos"
-  const destino = searchParams.get("destino") || "México"
-  const montoBase = Number(searchParams.get("monto") || "500")
-  const frecuencia = searchParams.get("frecuencia") || "Mensual"
-  const monedaOrigen = searchParams.get("monedaOrigen") || "USD"
-  const monedaDestino = searchParams.get("monedaDestino") || "MXN"
-  const tipoCambioReferencia = Number(searchParams.get("tipoCambio") || "17")
+  const metodo = params.metodo || "Bitcoin"
+  const origen = params.origen || "Estados Unidos"
+  const destino = params.destino || "México"
+  const montoBase = Number(params.monto || "500")
+  const frecuencia = params.frecuencia || "Mensual"
+  const monedaOrigen = params.monedaOrigen || "USD"
+  const monedaDestino = params.monedaDestino || "MXN"
+  const tipoCambioReferencia = Number(params.tipoCambio || "17")
 
   return (
-    <ResultsDashboardRemesas
-      metodoSeleccionado={metodo}
+    <ResultadosRemesasClient
+      metodo={metodo}
       origen={origen}
       destino={destino}
-      monedaOrigen={monedaOrigen}
-      monedaDestino={monedaDestino}
       montoBase={montoBase}
       frecuencia={frecuencia}
+      monedaOrigen={monedaOrigen}
+      monedaDestino={monedaDestino}
       tipoCambioReferencia={tipoCambioReferencia}
-      onBack={() => router.push("/simulador/remesas")}
-      onNewSimulation={() => router.push("/escenarios")}
     />
   )
 }
