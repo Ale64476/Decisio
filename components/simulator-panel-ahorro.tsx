@@ -192,6 +192,16 @@ switch (selectedMetodo) {
   const estimatedReceived = getMontoNumber(selectedMonto) - estimatedFee
   const estimatedTime = selectedMetodo === "Bitcoin" ? "10-30 min" : "1-2 dias"
 
+  const handleViewResults = () => {
+    // Guardar los valores seleccionados en localStorage
+    localStorage.setItem("selectedMonto", selectedMonto)
+    localStorage.setItem("selectedFrecuencia", selectedFrecuencia)
+    localStorage.setItem("selectedAnos", selectedAnos)
+    localStorage.setItem("selectedMetodo", selectedMetodo)
+    localStorage.setItem("selectedInterest", selectedInterest)
+    onViewResults()
+  }
+
   const getCurrentStepDescription = () => {
     if (simulationFinished) {
       return "La simulación terminó correctamente. Ya puedes revisar el flujo completo o abrir el panel de resultados."
@@ -500,7 +510,7 @@ switch (selectedMetodo) {
 
               {simulationFinished && (
                 <Button
-                  onClick={onViewResults}
+                  onClick={handleViewResults}
                   className="w-full bg-[#0f172a] border border-[#22c55e]/40 hover:bg-[#22c55e]/10 text-white py-7 text-base font-semibold rounded-xl transition-all"
                 >
                   Ver resultados detallados
